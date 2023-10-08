@@ -69,5 +69,6 @@ struct Room
     RoomType type;
 };
 
+bool FuzzyEquals(float x, float y);
 float RoomCost(const Room& room);
 bool DoesRoomFitConstraints(const Room& room);

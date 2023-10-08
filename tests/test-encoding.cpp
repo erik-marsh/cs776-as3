@@ -50,5 +50,12 @@ int main()
     for (Room& room : decodedChromosome)
         std::cout << room.length << " " << room.width << " " << room.x << " " << room.y << "\n";
 
+    auto encoded5p5 = EncodeFloat(5.5f);
+    float decoded5p5 = DecodeFloat(encoded5p5);
+
+    std::cout << std::setprecision(17);
+    std::cout << "5.5f literal value: " << 5.5f << "\n";
+    std::cout << "5.5f decoded value: " << decoded5p5 << "\n";
+
     return 0;
 }
