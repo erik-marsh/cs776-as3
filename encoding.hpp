@@ -17,3 +17,6 @@ Chromosome EncodeChromosome(std::array<Room, NUM_ROOMS>& rooms);
 
 float DecodeFloat(std::array<uint8_t, FLOAT_BITWIDTH>& bitstring);
 std::array<Room, NUM_ROOMS> DecodeChromosome(Chromosome& chromosome);
+
+float ObjectiveFunction(std::array<Room, NUM_ROOMS>& rooms);
+float ObjectiveToFitness(float objectiveValue);

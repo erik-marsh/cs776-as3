@@ -77,3 +77,15 @@ std::array<Room, NUM_ROOMS> DecodeChromosome(Chromosome& chromosome)
 
     return ret;
 }
+
+// This function assumes that all the rooms are valid beforehand.
+// (i.e. DoesRoomFitConstraints returns true for all rooms.)
+float ObjectiveFunction(std::array<Room, NUM_ROOMS>& rooms)
+{
+    float ret = 0.0f;
+    for (Room& room : rooms)
+        ret += RoomCost(room);
+    return ret;
+}
+
+float ObjectiveToFitness(float objectiveValue) { return 1.0f / (objectiveValue + 1.0f); }
