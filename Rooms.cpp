@@ -7,6 +7,8 @@ float RoomCost(const Room& room)
     return area;
 }
 
+// TODO: float equality will probably need fuzzy equality,
+// since the values produced by the decoder are likely not the same as the literals.
 bool DoesRoomFitConstraints(const Room& room)
 {
     const float area = room.length * room.width;
