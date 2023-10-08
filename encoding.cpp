@@ -7,9 +7,9 @@
 // We then expand on this to encode a whole chromosome (7 Rooms of 4 floats each = 280 bits).
 // Living, Kitchen, Bath, Hall, Bed1, Bed2, Bed3 is the assumed order.
 
-std::array<uint8_t, FLOAT_BITWIDTH> EncodeFloat(float val)
+Gene EncodeFloat(float val)
 {
-    std::array<uint8_t, FLOAT_BITWIDTH> ret;
+    Gene ret;
     val *= 10.0f;
     int ival = static_cast<int>(std::round(val));
     for (int i = FLOAT_BITWIDTH - 1; i >= 0; i--)
@@ -20,7 +20,7 @@ std::array<uint8_t, FLOAT_BITWIDTH> EncodeFloat(float val)
     return ret;
 }
 
-Chromosome EncodeChromosome(std::array<Room, NUM_ROOMS>& rooms)
+Chromosome EncodeChromosome(RoomSet& rooms)
 {
     Chromosome ret;
 
@@ -41,7 +41,7 @@ Chromosome EncodeChromosome(std::array<Room, NUM_ROOMS>& rooms)
     return ret;
 }
 
-float DecodeFloat(std::array<uint8_t, FLOAT_BITWIDTH>& bitstring)
+float DecodeFloat(Gene& bitstring)
 {
     int ival = 0;
     for (int i = 0; i < bitstring.size(); i++)
@@ -50,9 +50,9 @@ float DecodeFloat(std::array<uint8_t, FLOAT_BITWIDTH>& bitstring)
     return val;
 }
 
-std::array<Room, NUM_ROOMS> DecodeChromosome(Chromosome& chromosome)
+RoomSet DecodeChromosome(Chromosome& chromosome)
 {
-    std::array<Room, NUM_ROOMS> ret;
+    RoomSet ret;
 
     for (int i = 0; i < NUM_ROOMS; i++)
     {
@@ -61,7 +61,7 @@ std::array<Room, NUM_ROOMS> DecodeChromosome(Chromosome& chromosome)
 
         for (int j = 0; j < 4; j++)
         {
-            std::array<uint8_t, FLOAT_BITWIDTH> encoded;
+            Gene encoded;
             for (int k = 0; k < FLOAT_BITWIDTH; k++)
                 encoded[k] = chromosome[(i * ROOM_BITWIDTH) + (j * FLOAT_BITWIDTH) + k];
             float decoded = DecodeFloat(encoded);
@@ -80,7 +80,7 @@ std::array<Room, NUM_ROOMS> DecodeChromosome(Chromosome& chromosome)
 
 // This function assumes that all the rooms are valid beforehand.
 // (i.e. DoesRoomFitConstraints returns true for all rooms.)
-float ObjectiveFunction(std::array<Room, NUM_ROOMS>& rooms)
+float ObjectiveFunction(RoomSet& rooms)
 {
     float ret = 0.0f;
     for (Room& room : rooms)
