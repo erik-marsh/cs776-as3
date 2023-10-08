@@ -1,17 +1,19 @@
 #pragma once
 
-#include <vector>
+#include <array>
 #include <cstdint>
 
-std::vector<uint8_t> IntToBitstring(int x, int bitwidth);
-int BitstringToInt(std::vector<uint8_t> x);
+#include "Rooms.hpp"
 
-std::vector<uint8_t> Encode8(double x);
-std::vector<uint8_t> Encode10(double x);
-std::vector<uint8_t> Encode12(double x);
-std::vector<uint8_t> Encode17(double x);
+constexpr int NUM_ROOMS = 7;
+constexpr int FLOAT_BITWIDTH = 10;
+constexpr int ROOM_BITWIDTH = FLOAT_BITWIDTH * 4;
+constexpr int CHROMOSOME_BITWIDTH = ROOM_BITWIDTH * NUM_ROOMS;
 
-double Decode8(std::vector<uint8_t>& x);
-double Decode10(std::vector<uint8_t>& x);
-double Decode12(std::vector<uint8_t>& x);
-double Decode17(std::vector<uint8_t>& x);
+using Chromosome = std::array<uint8_t, CHROMOSOME_BITWIDTH>;
+
+std::array<uint8_t, FLOAT_BITWIDTH> EncodeFloat(float val);
+Chromosome EncodeChromosome(std::array<Room, NUM_ROOMS>& rooms);
+
+float DecodeFloat(std::array<uint8_t, FLOAT_BITWIDTH>& bitstring);
+std::array<Room, NUM_ROOMS> DecodeChromosome(Chromosome& chromosome);
