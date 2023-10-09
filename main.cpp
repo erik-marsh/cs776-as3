@@ -57,25 +57,20 @@ int main()
     std::random_device device{};
     auto seed = device();
     std::mt19937 generator{seed};
-    // RandomContext randContext;
-    // randContext.seed = device();
-    // randContext.gen = std::mt19937{randContext.seed};
-
-    // let's assume we're working in a two-dimesional input space
-    // (since DeJong5 only works on such a domain)
-    // so we needs to operate on two doubles
 
     std::cout << std::fixed << std::setprecision(6);
 
-    std::array<Individual, GENERATION_SIZE> population;
-    for (auto& individual : population)
+    Population population;
+    //for (auto& individual : population)
     {
+        Individual individual;
         InitializeIndividual(generator, individual);
-        // double d0Decoded = Decode8(individual.GetFirstDouble());
-        // double d1Decoded = Decode8(individual.GetSecondDouble());
-        // std::vector<double> x = {d0Decoded, d1Decoded};
-        // individual.fitness = MakeFitness(DeJong4(x));
+        PrintChromosome(individual.chromosome);
+        auto roomset = DecodeChromosome(individual.chromosome);
+        PrintRoomSet(roomset);
     }
+
+    return 0;
 
     for (int gen = 0; gen < NUM_GENERATIONS; gen++)
     {
@@ -161,8 +156,29 @@ int main()
 
 void InitializeIndividual(std::mt19937& generator, Individual& x)
 {
-    std::uniform_int_distribution<int> dist(0, 1);
-    for (int i = 0; i < x.chromosome.size(); i++)
+    // we just initialize the chromosome with random bits
+    // EXCEPT for the length and width of the bath and the length of the hall
+    // these are constant as per the problem specification
+    constexpr int bathLenOffset = 80;
+    constexpr int bathWidthOffset = 90;
+    constexpr int hallLenOffset = 120;
+    static Gene bathLen = EncodeFloat(BATH_LENGTH);     // chromosome offset: 80 + 0
+    static Gene bathWidth = EncodeFloat(BATH_WIDTH);    // chromosome offset: 80 + 10
+    static Gene hallLen = EncodeFloat(HALL_LENGTH);     
+
+    static std::uniform_int_distribution dist(0, 1);
+
+    for (int i = 0; i < bathLenOffset; i++)
+        x.chromosome[i] = dist(generator);
+    for (int i = 0; i < FLOAT_BITWIDTH; i++)
+        x.chromosome[bathLenOffset + i] = bathLen[i];
+    for (int i = 0; i < FLOAT_BITWIDTH; i++)
+        x.chromosome[bathWidthOffset + i] = bathWidth[i];
+    for (int i = bathWidthOffset + FLOAT_BITWIDTH; i < hallLenOffset; i++)
+        x.chromosome[i] = dist(generator);
+    for (int i = 0; i < FLOAT_BITWIDTH; i++)
+        x.chromosome[hallLenOffset + i] = hallLen[i];
+    for (int i = hallLenOffset + FLOAT_BITWIDTH; i < CHROMOSOME_BITWIDTH; i++)
         x.chromosome[i] = dist(generator);
 }
 
