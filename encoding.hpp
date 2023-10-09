@@ -22,3 +22,6 @@ RoomSet DecodeChromosome(Chromosome& chromosome);
 
 float ObjectiveFunction(RoomSet& rooms);
 float ObjectiveToFitness(float objectiveValue);
+
+void PrintChromosome(Chromosome& chromosome);
+void PrintRoomSet(RoomSet& rooms);

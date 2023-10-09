@@ -1,6 +1,7 @@
 #include "encoding.hpp"
 
 #include <cmath>
+#include <cstdio>
 
 // The float encoder transforms a value in the range [0, 102.3]
 // into a bitsting of width 10.
@@ -52,8 +53,11 @@ float DecodeFloat(Gene& bitstring)
 
 RoomSet DecodeChromosome(Chromosome& chromosome)
 {
-    RoomSet ret;
+    static constexpr std::array<RoomType, NUM_ROOMS> roomTypes = {
+        RoomType::LIVING, RoomType::KITCHEN, RoomType::BATH, RoomType::HALL,
+        RoomType::BED1,   RoomType::BED2,    RoomType::BED3};
 
+    RoomSet ret;
     for (int i = 0; i < NUM_ROOMS; i++)
     {
         Room room;
@@ -72,6 +76,7 @@ RoomSet DecodeChromosome(Chromosome& chromosome)
         room.width = roomVals[1];
         room.x = roomVals[2];
         room.y = roomVals[3];
+        room.type = roomTypes[i];
         ret[i] = room;
     }
 
@@ -89,3 +94,44 @@ float ObjectiveFunction(RoomSet& rooms)
 }
 
 float ObjectiveToFitness(float objectiveValue) { return 1.0f / (objectiveValue + 1.0f); }
+
+void PrintChromosome(Chromosome& chromosome)
+{
+    static constexpr std::array<RoomType, NUM_ROOMS> roomTypes = {
+        RoomType::LIVING, RoomType::KITCHEN, RoomType::BATH, RoomType::HALL,
+        RoomType::BED1,   RoomType::BED2,    RoomType::BED3};
+
+    std::printf("            %-10s | %-10s | %-10s | %-10s | %s\n", "Length", "Width", "x Pos",
+                "y Pos", "Type");
+    std::printf("Chromosome: ");
+    for (int i = 0; i < NUM_ROOMS; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            for (int k = 0; k < FLOAT_BITWIDTH; k++)
+            {
+                int index = (i * ROOM_BITWIDTH) + (j * FLOAT_BITWIDTH) + k;
+                std::printf("%d", static_cast<int>(chromosome[index]));
+            }
+            std::printf(" | ");
+        }
+        std::printf("%s\n", RoomTypeToString(roomTypes[i]).data());
+
+        if (i != NUM_ROOMS - 1) std::printf("            ");
+    }
+}
+
+void PrintRoomSet(RoomSet& rooms)
+{
+    std::printf("            %-10s | %-10s | %-10s | %-10s | %s\n", "Length", "Width", "x Pos",
+                "y Pos", "Type");
+    std::printf("RoomSet...: ");
+    for (int i = 0; i < NUM_ROOMS; i++)
+    {
+        Room& room = rooms[i];
+        std::printf("%10.6f | %10.6f | %10.6f | %10.6f | %s\n", room.length, room.width, room.x,
+                    room.y, RoomTypeToString(room.type).data());
+
+        if (i != NUM_ROOMS - 1) std::printf("            ");
+    }
+}

@@ -83,3 +83,26 @@ bool DoesRoomFitConstraints(const Room& room)
 
     return true;
 }
+
+std::string_view RoomTypeToString(RoomType type)
+{
+    switch (type)
+    {
+        case RoomType::LIVING:
+            return "Living";
+        case RoomType::KITCHEN:
+            return "Kitchen";
+        case RoomType::BATH:
+            return "Bath";
+        case RoomType::HALL:
+            return "Hall";
+        case RoomType::BED1:
+            return "Bed 1";
+        case RoomType::BED2:
+            return "Bed 2";
+        case RoomType::BED3:
+            return "Bed 3";
+        default:
+            return "<UNKNOWN ROOM>";
+    }
+}

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 template <typename T>
 struct Range
 {
@@ -72,3 +74,4 @@ struct Room
 bool FuzzyEquals(float x, float y);
 float RoomCost(const Room& room);
 bool DoesRoomFitConstraints(const Room& room);
+std::string_view RoomTypeToString(RoomType type);
