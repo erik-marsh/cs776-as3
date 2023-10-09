@@ -30,7 +30,7 @@ bool DoesRoomFitConstraints(const Room& room)
             if (!LIVING_LENGTH.Contains(room.length)) return false;
             if (!LIVING_WIDTH.Contains(room.width)) return false;
             if (!LIVING_AREA.Contains(area)) return false;
-            if (!FuzzyEquals(proportionLW, LIVING_PROPORTION) ||
+            if (!FuzzyEquals(proportionLW, LIVING_PROPORTION) &&
                 !FuzzyEquals(proportionWL, LIVING_PROPORTION))
                 return false;
             break;
@@ -38,7 +38,7 @@ bool DoesRoomFitConstraints(const Room& room)
             if (!KITCHEN_LENGTH.Contains(room.length)) return false;
             if (!KITCHEN_WIDTH.Contains(room.width)) return false;
             if (!KITCHEN_AREA.Contains(area)) return false;
-            if (!KITCHEN_PROPORTION.Contains(proportionLW) ||
+            if (!KITCHEN_PROPORTION.Contains(proportionLW) &&
                 !KITCHEN_PROPORTION.Contains(proportionWL))
                 return false;
             break;
@@ -50,14 +50,14 @@ bool DoesRoomFitConstraints(const Room& room)
             if (!FuzzyEquals(room.length, HALL_LENGTH)) return false;
             if (!HALL_WIDTH.Contains(room.width)) return false;
             if (!HALL_AREA.Contains(area)) return false;
-            if (!HALL_PROPORTION.Contains(proportionLW) || !HALL_PROPORTION.Contains(proportionWL))
+            if (!HALL_PROPORTION.Contains(proportionLW) && !HALL_PROPORTION.Contains(proportionWL))
                 return false;
             break;
         case RoomType::BED1:
             if (!BED1_LENGTH.Contains(room.length)) return false;
             if (!BED1_WIDTH.Contains(room.width)) return false;
             if (!BED1_AREA.Contains(area)) return false;
-            if (!FuzzyEquals(proportionLW, BED1_PROPORTION) ||
+            if (!FuzzyEquals(proportionLW, BED1_PROPORTION) &&
                 !FuzzyEquals(proportionWL, BED1_PROPORTION))
                 return false;
             break;
@@ -65,7 +65,7 @@ bool DoesRoomFitConstraints(const Room& room)
             if (!BED2_LENGTH.Contains(room.length)) return false;
             if (!BED2_WIDTH.Contains(room.width)) return false;
             if (!BED2_AREA.Contains(area)) return false;
-            if (!FuzzyEquals(proportionLW, BED2_PROPORTION) ||
+            if (!FuzzyEquals(proportionLW, BED2_PROPORTION) &&
                 !FuzzyEquals(proportionWL, BED2_PROPORTION))
                 return false;
             break;
@@ -73,7 +73,7 @@ bool DoesRoomFitConstraints(const Room& room)
             if (!BED3_LENGTH.Contains(room.length)) return false;
             if (!BED3_WIDTH.Contains(room.width)) return false;
             if (!BED3_AREA.Contains(area)) return false;
-            if (!FuzzyEquals(proportionLW, BED3_PROPORTION) ||
+            if (!FuzzyEquals(proportionLW, BED3_PROPORTION) &&
                 !FuzzyEquals(proportionWL, BED3_PROPORTION))
                 return false;
             break;
@@ -104,7 +104,7 @@ RoomValidity DoesRoomFitContraintsDiganostic(const Room& room)
             if (!LIVING_LENGTH.Contains(room.length)) validity.lengthMet = false;
             if (!LIVING_WIDTH.Contains(room.width)) validity.widthMet = false;
             if (!LIVING_AREA.Contains(area)) validity.areaMet = false;
-            if (!FuzzyEquals(proportionLW, LIVING_PROPORTION) ||
+            if (!FuzzyEquals(proportionLW, LIVING_PROPORTION) &&
                 !FuzzyEquals(proportionWL, LIVING_PROPORTION))
                 validity.proportionMet = false;
             break;
@@ -112,7 +112,7 @@ RoomValidity DoesRoomFitContraintsDiganostic(const Room& room)
             if (!KITCHEN_LENGTH.Contains(room.length)) validity.lengthMet = false;
             if (!KITCHEN_WIDTH.Contains(room.width)) validity.widthMet = false;
             if (!KITCHEN_AREA.Contains(area)) validity.areaMet = false;
-            if (!KITCHEN_PROPORTION.Contains(proportionLW) ||
+            if (!KITCHEN_PROPORTION.Contains(proportionLW) &&
                 !KITCHEN_PROPORTION.Contains(proportionWL))
                 validity.proportionMet = false;
             break;
@@ -124,14 +124,14 @@ RoomValidity DoesRoomFitContraintsDiganostic(const Room& room)
             if (!FuzzyEquals(room.length, HALL_LENGTH)) validity.lengthMet = false;
             if (!HALL_WIDTH.Contains(room.width)) validity.widthMet = false;
             if (!HALL_AREA.Contains(area)) validity.areaMet = false;
-            if (!HALL_PROPORTION.Contains(proportionLW) || !HALL_PROPORTION.Contains(proportionWL))
+            if (!HALL_PROPORTION.Contains(proportionLW) && !HALL_PROPORTION.Contains(proportionWL))
                 validity.proportionMet = false;
             break;
         case RoomType::BED1:
             if (!BED1_LENGTH.Contains(room.length)) validity.lengthMet = false;
             if (!BED1_WIDTH.Contains(room.width)) validity.widthMet = false;
             if (!BED1_AREA.Contains(area)) validity.areaMet = false;
-            if (!FuzzyEquals(proportionLW, BED1_PROPORTION) ||
+            if (!FuzzyEquals(proportionLW, BED1_PROPORTION) &&
                 !FuzzyEquals(proportionWL, BED1_PROPORTION))
                 validity.proportionMet = false;
             break;
@@ -139,7 +139,7 @@ RoomValidity DoesRoomFitContraintsDiganostic(const Room& room)
             if (!BED2_LENGTH.Contains(room.length)) validity.lengthMet = false;
             if (!BED2_WIDTH.Contains(room.width)) validity.widthMet = false;
             if (!BED2_AREA.Contains(area)) validity.areaMet = false;
-            if (!FuzzyEquals(proportionLW, BED2_PROPORTION) ||
+            if (!FuzzyEquals(proportionLW, BED2_PROPORTION) &&
                 !FuzzyEquals(proportionWL, BED2_PROPORTION))
                 validity.proportionMet = false;
             break;
@@ -147,7 +147,7 @@ RoomValidity DoesRoomFitContraintsDiganostic(const Room& room)
             if (!BED3_LENGTH.Contains(room.length)) validity.lengthMet = false;
             if (!BED3_WIDTH.Contains(room.width)) validity.widthMet = false;
             if (!BED3_AREA.Contains(area)) validity.areaMet = false;
-            if (!FuzzyEquals(proportionLW, BED3_PROPORTION) ||
+            if (!FuzzyEquals(proportionLW, BED3_PROPORTION) &&
                 !FuzzyEquals(proportionWL, BED3_PROPORTION))
                 validity.proportionMet = false;
             break;
