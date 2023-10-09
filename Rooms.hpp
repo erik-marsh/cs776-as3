@@ -71,7 +71,18 @@ struct Room
     RoomType type;
 };
 
+struct RoomValidity
+{
+    bool lengthMet;
+    bool widthMet;
+    bool xMet;
+    bool yMet;
+    bool areaMet;
+    bool proportionMet;
+};
+
 bool FuzzyEquals(float x, float y);
 float RoomCost(const Room& room);
 bool DoesRoomFitConstraints(const Room& room);
+RoomValidity DoesRoomFitContraintsDiganostic(const Room& room);
 std::string_view RoomTypeToString(RoomType type);

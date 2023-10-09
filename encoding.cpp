@@ -123,14 +123,39 @@ void PrintChromosome(Chromosome& chromosome)
 
 void PrintRoomSet(RoomSet& rooms)
 {
-    std::printf("            %-10s | %-10s | %-10s | %-10s | %s\n", "Length", "Width", "x Pos",
-                "y Pos", "Type");
+    static constexpr std::string_view redText = "\033[91m";
+    static constexpr std::string_view defaultText = "\033[39m";
+    static constexpr std::string_view resetText = "\033[0m";
+
+    std::printf("            %-10s | %-10s | %-10s | %-10s | %-12s | %-10s | %-10s | %s\n",
+                "Length", "Width", "x Pos", "y Pos", "Area", "PropLW", "PropWL", "Type");
     std::printf("RoomSet...: ");
     for (int i = 0; i < NUM_ROOMS; i++)
     {
         Room& room = rooms[i];
-        std::printf("%10.6f | %10.6f | %10.6f | %10.6f | %s\n", room.length, room.width, room.x,
-                    room.y, RoomTypeToString(room.type).data());
+        RoomValidity validity = DoesRoomFitContraintsDiganostic(room);
+
+        const float area = room.length * room.width;
+        const float proportionLW =
+            room.length / room.width;  // TODO: must not allow a room to be generated with 0 width
+                                       // or length to prevent a division by 0
+        const float proportionWL = room.width / room.length;
+
+        std::printf("%s%10.6f%s | ", (validity.lengthMet ? defaultText.data() : redText.data()),
+                    room.length, resetText.data());
+        std::printf("%s%10.6f%s | ", (validity.widthMet ? defaultText.data() : redText.data()),
+                    room.width, resetText.data());
+        std::printf("%s%10.6f%s | ", (validity.xMet ? defaultText.data() : redText.data()), room.x,
+                    resetText.data());
+        std::printf("%s%10.6f%s | ", (validity.yMet ? defaultText.data() : redText.data()), room.y,
+                    resetText.data());
+        std::printf("%s%12.6f%s | ", (validity.areaMet ? defaultText.data() : redText.data()), area,
+                    resetText.data());
+        std::printf("%s%10.6f%s | ", (validity.proportionMet ? defaultText.data() : redText.data()),
+                    proportionLW, resetText.data());
+        std::printf("%s%10.6f%s | ", (validity.proportionMet ? defaultText.data() : redText.data()),
+                    proportionWL, resetText.data());
+        std::printf("%s\n", RoomTypeToString(room.type).data());
 
         if (i != NUM_ROOMS - 1) std::printf("            ");
     }
