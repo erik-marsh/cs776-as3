@@ -24,6 +24,7 @@ using Population = std::array<Individual, GENERATION_SIZE>;
 using ProbDist = std::array<double, GENERATION_SIZE>;
 
 void RunGeneticAlgorithm();
+float GenerateFloatInRange(std::mt19937& generator, const Range<float> range);
 void InitializeIndividual(std::mt19937& generator, Individual& x);
 float GetFitness(RoomSet& rooms);
 ProbDist MakeCumulativeProbDist(Population& pop);
@@ -108,6 +109,8 @@ void RunGeneticAlgorithm()
         individual.fitness = GetFitness(roomset);
     }
 
+    std::cout << "Finished initialization...\n";
+
     for (int gen = 0; gen < NUM_GENERATIONS; gen++)
     {
         auto cdf = MakeCumulativeProbDist(population);
@@ -165,32 +168,147 @@ void RunGeneticAlgorithm()
     }
 }
 
+float GenerateFloatInRange(std::mt19937& generator, const Range<float> range)
+{
+    // since we are dealing with discrete float values,
+    // we want to generate them as a discrete type first
+    constexpr float offset = 10.0f;
+    std::uniform_int_distribution<int> dist(range.low * offset, range.high * offset);
+    int value = dist(generator);
+    return value / offset;
+}
+
 void InitializeIndividual(std::mt19937& generator, Individual& x)
 {
-    // we just initialize the chromosome with random bits
-    // EXCEPT for the length and width of the bath and the length of the hall
-    // these are constant as per the problem specification
-    constexpr int bathLenOffset = 80;
-    constexpr int bathWidthOffset = 90;
-    constexpr int hallLenOffset = 120;
-    static Gene bathLen = EncodeFloat(BATH_LENGTH);   // chromosome offset: 80 + 0
-    static Gene bathWidth = EncodeFloat(BATH_WIDTH);  // chromosome offset: 80 + 10
-    static Gene hallLen = EncodeFloat(HALL_LENGTH);
+    constexpr Range<float> defaultRange(0.0f, 102.3f);
 
-    static std::uniform_int_distribution dist(0, 1);
+    RoomSet roomSet;
 
-    for (int i = 0; i < bathLenOffset; i++)
-        x.chromosome[i] = dist(generator);
-    for (int i = 0; i < FLOAT_BITWIDTH; i++)
-        x.chromosome[bathLenOffset + i] = bathLen[i];
-    for (int i = 0; i < FLOAT_BITWIDTH; i++)
-        x.chromosome[bathWidthOffset + i] = bathWidth[i];
-    for (int i = bathWidthOffset + FLOAT_BITWIDTH; i < hallLenOffset; i++)
-        x.chromosome[i] = dist(generator);
-    for (int i = 0; i < FLOAT_BITWIDTH; i++)
-        x.chromosome[hallLenOffset + i] = hallLen[i];
-    for (int i = hallLenOffset + FLOAT_BITWIDTH; i < CHROMOSOME_BITWIDTH; i++)
-        x.chromosome[i] = dist(generator);
+    // initialize each room with valid values
+    // Living, Kitchen, Bath, Hall, Bed1, Bed2, Bed3
+    roomSet[0].type = RoomType::LIVING;
+    do
+    {
+        // fixed proportions must be generated in a different way
+        // this prevents us from spinning our wheels in this loop for a Very Long Time
+        float tmpLength = GenerateFloatInRange(generator, LIVING_LENGTH);
+        float tmpWidth = GenerateFloatInRange(generator, LIVING_WIDTH);
+        float propLength = LIVING_PROPORTION * tmpWidth;
+        float propWidth = LIVING_PROPORTION * tmpLength;
+
+        // the selection process is biased towards longer width, but whatever
+        if (LIVING_LENGTH.Contains(tmpLength) && LIVING_WIDTH.Contains(propWidth))
+        {
+            roomSet[0].length = tmpLength;
+            roomSet[0].width = propWidth;
+        }
+        else if (LIVING_LENGTH.Contains(propLength) && LIVING_WIDTH.Contains(tmpWidth))
+        {
+            roomSet[0].length = propLength;
+            roomSet[0].width = propWidth;
+        }
+    } while (!DoesRoomFitConstraints(roomSet[0]));
+
+    roomSet[1].type = RoomType::KITCHEN;
+    do
+    {
+        roomSet[1].length = GenerateFloatInRange(generator, KITCHEN_LENGTH);
+        roomSet[1].width = GenerateFloatInRange(generator, KITCHEN_WIDTH);
+    } while (!DoesRoomFitConstraints(roomSet[1]));
+
+    roomSet[2].type = RoomType::BATH;
+    roomSet[2].length = BATH_LENGTH;
+    roomSet[2].width = BATH_WIDTH;
+
+    roomSet[3].type = RoomType::HALL;
+    do
+    {
+        roomSet[3].length = HALL_LENGTH;
+        roomSet[3].width = GenerateFloatInRange(generator, HALL_WIDTH);
+    } while (!DoesRoomFitConstraints(roomSet[3]));
+
+    roomSet[4].type = RoomType::BED1;
+    do
+    {
+        float tmpLength = GenerateFloatInRange(generator, BED1_LENGTH);
+        float tmpWidth = GenerateFloatInRange(generator, BED1_WIDTH);
+        float propLength = BED1_PROPORTION * tmpWidth;
+        float propWidth = BED1_PROPORTION * tmpLength;
+
+        roomSet[4].length = GenerateFloatInRange(generator, BED1_LENGTH);
+        roomSet[4].width = GenerateFloatInRange(generator, BED1_WIDTH);
+
+        if (BED1_LENGTH.Contains(tmpLength) && BED1_WIDTH.Contains(propWidth))
+        {
+            roomSet[4].length = tmpLength;
+            roomSet[4].width = propWidth;
+        }
+        else if (BED1_LENGTH.Contains(propLength) && BED1_WIDTH.Contains(tmpWidth))
+        {
+            roomSet[4].length = propLength;
+            roomSet[4].width = propWidth;
+        }
+    } while (!DoesRoomFitConstraints(roomSet[4]));
+
+    roomSet[5].type = RoomType::BED2;
+    do
+    {
+        float tmpLength = GenerateFloatInRange(generator, BED2_LENGTH);
+        float tmpWidth = GenerateFloatInRange(generator, BED2_WIDTH);
+        float propLength = BED2_PROPORTION * tmpWidth;
+        float propWidth = BED2_PROPORTION * tmpLength;
+
+        roomSet[5].length = GenerateFloatInRange(generator, BED2_LENGTH);
+        roomSet[5].width = GenerateFloatInRange(generator, BED2_WIDTH);
+
+        if (BED2_LENGTH.Contains(tmpLength) && BED2_WIDTH.Contains(propWidth))
+        {
+            roomSet[5].length = tmpLength;
+            roomSet[5].width = propWidth;
+        }
+        else if (BED2_LENGTH.Contains(propLength) && BED2_WIDTH.Contains(tmpWidth))
+        {
+            roomSet[5].length = propLength;
+            roomSet[5].width = propWidth;
+        }
+    } while (!DoesRoomFitConstraints(roomSet[5]));
+
+    roomSet[6].type = RoomType::BED3;
+    do
+    {
+        float tmpLength = GenerateFloatInRange(generator, BED3_LENGTH);
+        float tmpWidth = GenerateFloatInRange(generator, BED3_WIDTH);
+        float propLength = BED3_PROPORTION * tmpWidth;
+        float propWidth = BED3_PROPORTION * tmpLength;
+
+        roomSet[6].length = GenerateFloatInRange(generator, BED3_LENGTH);
+        roomSet[6].width = GenerateFloatInRange(generator, BED3_WIDTH);
+
+        if (BED3_LENGTH.Contains(tmpLength) && BED3_WIDTH.Contains(propWidth))
+        {
+            roomSet[6].length = tmpLength;
+            roomSet[6].width = propWidth;
+        }
+        else if (BED3_LENGTH.Contains(propLength) && BED3_WIDTH.Contains(tmpWidth))
+        {
+            roomSet[6].length = propLength;
+            roomSet[6].width = propWidth;
+        }
+    } while (!DoesRoomFitConstraints(roomSet[6]));
+
+    // i don't currently care about position,
+    // so we can initialize them all randomly in one go
+    for (Room& room : roomSet)
+    {
+        room.x = GenerateFloatInRange(generator, defaultRange);
+        room.y = GenerateFloatInRange(generator, defaultRange);
+    }
+
+    x.chromosome = EncodeChromosome(roomSet);
+    // PrintRoomSet(roomSet);
+    // PrintChromosome(x.chromosome);
+    // char tmp;
+    // std::cin >> tmp;
 }
 
 float GetFitness(RoomSet& rooms)

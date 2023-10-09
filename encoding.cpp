@@ -105,7 +105,9 @@ float ObjectiveToFitness(float objectiveValue)
     // so we need to add an epsilon of 1 to the result of the previous caluclation.
     scaledObjective += 1.0f;
     // then to turn the minimization into maximization, we put it in the denominator
-    return 100.0f / scaledObjective;
+    // and multiply by an arbitrary constant (because we like to have fun here)
+    // (it makes fitness more readable)
+    return 100'000.0f / scaledObjective;
 }
 
 void PrintChromosome(Chromosome& chromosome)
