@@ -23,6 +23,7 @@ struct Individual
 using Population = std::array<Individual, GENERATION_SIZE>;
 using ProbDist = std::array<double, GENERATION_SIZE>;
 
+void RunGeneticAlgorithm();
 void InitializeIndividual(std::mt19937& generator, Individual& x);
 float GetFitness(RoomSet& rooms);
 ProbDist MakeCumulativeProbDist(Population& pop);
@@ -55,22 +56,54 @@ int main()
     //         Evaluate population_t+1
     //     do some bookkeeping
 
+    // std::cout << std::fixed << std::setprecision(6);
+
+    for (int i = 0; i < 30; i++)
+    {
+        RunGeneticAlgorithm();
+    }
+
+    // auto newPopulation = Select_old(randContext, population);
+    // for (Individual& indiv : newPopulation)
+    // {
+    //     for (auto val : indiv.GetFirstDouble())
+    //         std::cout << (int)val;
+    //     std::cout << " | ";
+    //     for (auto val : indiv.GetSecondDouble())
+    //         std::cout << (int)val;
+    //     std::cout << " | Fitness: " << indiv.fitness << "\n";
+    // }
+
+    // std::cout << "\n";
+    // for (auto val : newPopulation[17].GetFirstDouble())
+    //     std::cout << (int)val;
+    // for (auto val : newPopulation[17].GetSecondDouble())
+    //     std::cout << (int)val;
+    // std::cout << "\n";
+    // for (auto val : newPopulation[17].chromosome)
+    //     std::cout << (int)val;
+    // std::cout << "\n";
+
+    return 0;
+}
+
+void RunGeneticAlgorithm()
+{
     std::random_device device{};
     auto seed = device();
     std::mt19937 generator{seed};
 
-    // std::cout << std::fixed << std::setprecision(6);
+    std::cout << "Running GA with seed " << static_cast<unsigned int>(seed) << "...\n";
 
     Population population;
-    // for (auto& individual : population)
     for (int i = 0; i < population.size(); i++)
     {
         Individual& individual = population[i];
         InitializeIndividual(generator, individual);
-        std::cout << "\n\n==================== INDIVIDUAL " << i << "====================\n";
-        PrintChromosome(individual.chromosome);
+        // std::cout << "\n\n==================== INDIVIDUAL " << i << "====================\n";
+        // PrintChromosome(individual.chromosome);
         auto roomset = DecodeChromosome(individual.chromosome);
-        PrintRoomSet(roomset);
+        // PrintRoomSet(roomset);
 
         individual.fitness = GetFitness(roomset);
     }
@@ -82,25 +115,23 @@ int main()
 
         for (int i = 0; i < GENERATION_SIZE; i += 2)
         {
-            std::cout << "\nSelecting...\n";
+            // std::cout << "\nSelecting...\n";
             auto parents = Select(generator, cdf, population);
-            for (auto& p : parents)
-            {
-                std::cout << "     Selected ";
-                for (auto val : p.chromosome)
-                    std::cout << (int)val;
-                std::cout << " (Fitness=" << p.fitness << ")\n";
-            }
+            // for (auto& p : parents)
+            // {
+            //     std::cout << "     Selected ";
+            //     for (auto val : p.chromosome)
+            //         std::cout << (int)val;
+            //     std::cout << " (Fitness=" << p.fitness << ")\n";
+            // }
 
             // mutation occurs within the Crossover function
             // std::cout << "Reproducing...\n";
             auto children = Crossover(generator, parents);
             for (auto& c : children)
             {
-                // double d0Decoded = Decode8(c.GetFirstDouble());
-                // double d1Decoded = Decode8(c.GetSecondDouble());
-                // std::vector<double> x = {d0Decoded, d1Decoded};
-                // c.fitness = MakeFitness(DeJong4(x));
+                auto roomSet = DecodeChromosome(c.chromosome);
+                c.fitness = GetFitness(roomSet);
 
                 // std::cout << "    Got child ";
                 // for (auto val : c.chromosome)
@@ -132,29 +163,6 @@ int main()
 
         population = newGeneration;
     }
-
-    // auto newPopulation = Select_old(randContext, population);
-    // for (Individual& indiv : newPopulation)
-    // {
-    //     for (auto val : indiv.GetFirstDouble())
-    //         std::cout << (int)val;
-    //     std::cout << " | ";
-    //     for (auto val : indiv.GetSecondDouble())
-    //         std::cout << (int)val;
-    //     std::cout << " | Fitness: " << indiv.fitness << "\n";
-    // }
-
-    // std::cout << "\n";
-    // for (auto val : newPopulation[17].GetFirstDouble())
-    //     std::cout << (int)val;
-    // for (auto val : newPopulation[17].GetSecondDouble())
-    //     std::cout << (int)val;
-    // std::cout << "\n";
-    // for (auto val : newPopulation[17].chromosome)
-    //     std::cout << (int)val;
-    // std::cout << "\n";
-
-    return 0;
 }
 
 void InitializeIndividual(std::mt19937& generator, Individual& x)
@@ -197,16 +205,16 @@ float GetFitness(RoomSet& rooms)
     {
         if (!DoesRoomFitConstraints(room))
         {
-            std::cout << "Objective: Invalid\n";
-            std::cout << "Fitness..: " << invalidFitness << "\n";
+            // std::cout << "Objective: Invalid\n";
+            // std::cout << "Fitness..: " << invalidFitness << "\n";
             return invalidFitness;
         }
     }
 
     float objective = doesFit ? ObjectiveFunction(rooms) : 0.0f;
-    std::cout << "Objective: " << objective << "\n";
+    // std::cout << "Objective: " << objective << "\n";
     float fitness = ObjectiveToFitness(objective);
-    std::cout << "Fitness..: " << fitness << "\n";
+    // std::cout << "Fitness..: " << fitness << "\n";
     return fitness;
 }
 
