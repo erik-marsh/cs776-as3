@@ -24,6 +24,7 @@ using Population = std::array<Individual, GENERATION_SIZE>;
 using ProbDist = std::array<double, GENERATION_SIZE>;
 
 void InitializeIndividual(std::mt19937& generator, Individual& x);
+float GetFitness(RoomSet& rooms);
 ProbDist MakeCumulativeProbDist(Population& pop);
 std::array<Individual, 2> Select(std::mt19937& generator, ProbDist& cdf, Population& pop);
 std::array<Individual, 2> Crossover(std::mt19937& generator, std::array<Individual, 2>& parents);
@@ -58,19 +59,21 @@ int main()
     auto seed = device();
     std::mt19937 generator{seed};
 
-    std::cout << std::fixed << std::setprecision(6);
+    // std::cout << std::fixed << std::setprecision(6);
 
     Population population;
-    //for (auto& individual : population)
+    // for (auto& individual : population)
+    for (int i = 0; i < population.size(); i++)
     {
-        Individual individual;
+        Individual& individual = population[i];
         InitializeIndividual(generator, individual);
+        std::cout << "\n\n==================== INDIVIDUAL " << i << "====================\n";
         PrintChromosome(individual.chromosome);
         auto roomset = DecodeChromosome(individual.chromosome);
         PrintRoomSet(roomset);
-    }
 
-    return 0;
+        individual.fitness = GetFitness(roomset);
+    }
 
     for (int gen = 0; gen < NUM_GENERATIONS; gen++)
     {
@@ -79,15 +82,15 @@ int main()
 
         for (int i = 0; i < GENERATION_SIZE; i += 2)
         {
-            // std::cout << "\nSelecting...\n";
+            std::cout << "\nSelecting...\n";
             auto parents = Select(generator, cdf, population);
-            // for (auto& p : parents)
-            // {
-            //     std::cout << "     Selected ";
-            //     for (auto val : p.chromosome)
-            //         std::cout << (int)val;
-            //     std::cout << " (Fitness=" << p.fitness << ")\n";
-            // }
+            for (auto& p : parents)
+            {
+                std::cout << "     Selected ";
+                for (auto val : p.chromosome)
+                    std::cout << (int)val;
+                std::cout << " (Fitness=" << p.fitness << ")\n";
+            }
 
             // mutation occurs within the Crossover function
             // std::cout << "Reproducing...\n";
@@ -162,9 +165,9 @@ void InitializeIndividual(std::mt19937& generator, Individual& x)
     constexpr int bathLenOffset = 80;
     constexpr int bathWidthOffset = 90;
     constexpr int hallLenOffset = 120;
-    static Gene bathLen = EncodeFloat(BATH_LENGTH);     // chromosome offset: 80 + 0
-    static Gene bathWidth = EncodeFloat(BATH_WIDTH);    // chromosome offset: 80 + 10
-    static Gene hallLen = EncodeFloat(HALL_LENGTH);     
+    static Gene bathLen = EncodeFloat(BATH_LENGTH);   // chromosome offset: 80 + 0
+    static Gene bathWidth = EncodeFloat(BATH_WIDTH);  // chromosome offset: 80 + 10
+    static Gene hallLen = EncodeFloat(HALL_LENGTH);
 
     static std::uniform_int_distribution dist(0, 1);
 
@@ -182,16 +185,54 @@ void InitializeIndividual(std::mt19937& generator, Individual& x)
         x.chromosome[i] = dist(generator);
 }
 
+float GetFitness(RoomSet& rooms)
+{
+    // if at least one constraint is not met,
+    // the entire chromosome is invalid and should have close to zero fitness
+    // (we can't use pure zero because of the way the CDF is calculated)
+    constexpr float invalidFitness = 0.0f;
+
+    bool doesFit = true;
+    for (Room& room : rooms)
+    {
+        if (!DoesRoomFitConstraints(room))
+        {
+            std::cout << "Objective: Invalid\n";
+            std::cout << "Fitness..: " << invalidFitness << "\n";
+            return invalidFitness;
+        }
+    }
+
+    float objective = doesFit ? ObjectiveFunction(rooms) : 0.0f;
+    std::cout << "Objective: " << objective << "\n";
+    float fitness = ObjectiveToFitness(objective);
+    std::cout << "Fitness..: " << fitness << "\n";
+    return fitness;
+}
+
 ProbDist MakeCumulativeProbDist(Population& pop)
 {
     double totalFitness = 0.0;
     for (Individual& indiv : pop)
         totalFitness += indiv.fitness;
     // std::cout << "Total fitness: " << totalFitness << "\n";
+    ProbDist cumulativeProbs;  // need
+
+    // if the total fitness is 0, the entire probability distribution will be 0s
+    // to prevent this, we instead return a uniform CDF.
+    if (totalFitness == 0.0f)
+    {
+        float accumulator = 0.1f;
+        for (int i = 0; i < cumulativeProbs.size(); i++)
+        {
+            cumulativeProbs[i] = accumulator;
+            accumulator += 0.1f;
+        }
+        return cumulativeProbs;
+    }
 
     ProbDist fitnessProportions;  // for bookkeeping only
     ProbDist expectedValues;      // for bookkeeping only
-    ProbDist cumulativeProbs;     // need
     double accumulator = 0.0;
 
     for (int i = 0; i < GENERATION_SIZE; i++)

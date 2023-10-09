@@ -93,7 +93,20 @@ float ObjectiveFunction(RoomSet& rooms)
     return ret;
 }
 
-float ObjectiveToFitness(float objectiveValue) { return 1.0f / (objectiveValue + 1.0f); }
+float ObjectiveToFitness(float objectiveValue)
+{
+    // some algebra tells us that the true minimum objective function value is
+    // 7  * (0.1)^2 = 0.07
+    // and the maximum is infinity
+    // The fact that decimals are valid here messes with our caluclation,
+    // so we need to multiply the objective function value by 100 first.
+    float scaledObjective = objectiveValue * 100.0f;
+    // We will occasionally get fitness values of 0 (constraint violation),
+    // so we need to add an epsilon of 1 to the result of the previous caluclation.
+    scaledObjective += 1.0f;
+    // then to turn the minimization into maximization, we put it in the denominator
+    return 100.0f / scaledObjective;
+}
 
 void PrintChromosome(Chromosome& chromosome)
 {
