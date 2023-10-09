@@ -1,0 +1,10 @@
+constexpr int NUM_GENERATIONS = 50;
+constexpr int GENERATION_SIZE = 100;
+constexpr double CROSSOVER_PROB = 0.7;
+constexpr double MUTATION_PROB = 0.001;
+
+ran an SGA on the 280 bit chromosome
+
+got zero fitness every time
+    i.e. every single chromosome was invalid
+obviously this won't work -- we need to initialize the rooms with valid values
