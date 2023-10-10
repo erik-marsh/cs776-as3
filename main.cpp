@@ -5,7 +5,10 @@
 #include <iostream>
 #include <random>
 #include <vector>
+#include <thread>
 
+#define cimg_display 0
+#include "CImg/CImg.h"
 #include "Rooms.hpp"
 #include "encoding.hpp"
 
@@ -305,10 +308,49 @@ void InitializeIndividual(std::mt19937& generator, Individual& x)
     }
 
     x.chromosome = EncodeChromosome(roomSet);
-    // PrintRoomSet(roomSet);
-    // PrintChromosome(x.chromosome);
-    // char tmp;
-    // std::cin >> tmp;
+    PrintRoomSet(roomSet);
+    PrintChromosome(x.chromosome);
+
+    static constexpr std::array<uint8_t, 3> livingColor{255, 0, 0};    // red
+    static constexpr std::array<uint8_t, 3> kitchenColor{0, 255, 0};   // green
+    static constexpr std::array<uint8_t, 3> bathColor{0, 0, 255};      // blue
+    static constexpr std::array<uint8_t, 3> hallColor{128, 128, 128};  // gray
+    static constexpr std::array<uint8_t, 3> bed1Color{255, 0, 255};    // purple
+    static constexpr std::array<uint8_t, 3> bed2Color{0, 255, 255};    // cyan
+    static constexpr std::array<uint8_t, 3> bed3Color{255, 255, 0};    // yellow
+    static constexpr std::array colors = {livingColor, kitchenColor, bathColor, hallColor,
+                                          bed1Color,   bed2Color,    bed3Color};
+
+    // image layout is...
+    // x 0 -> 1023 (length)
+    // y 0
+    // |
+    // V 1023 (width)
+    cimg_library::CImg<uint8_t> image(1024, 1024, 1, 3, 0);
+    for (int i = 0; i < NUM_ROOMS; i++)
+    {
+        Room& room = roomSet[i];
+        const int xRoot = static_cast<int>(room.x * 10.0f);
+        const int yRoot = static_cast<int>(room.y * 10.0f);
+        const int length = static_cast<int>(room.length * 10.0f);
+        const int width = static_cast<int>(room.width * 10.0f);
+
+        const int xMax = xRoot + length > 1023 ? 1023 : xRoot + length;
+        const int yMax = yRoot + width > 1023 ? 1023 : yRoot + width;
+
+        for (int x = xRoot; x < xMax; x++)
+        {
+            for (int y = yRoot; y < yMax; y++)
+            {
+                image(x, y, 0, 0) = colors[i][0];
+                image(x, y, 0, 1) = colors[i][1];
+                image(x, y, 0, 2) = colors[i][2];
+            }
+        }
+    }
+    image.save_jpeg("out.jpeg");
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 float GetFitness(RoomSet& rooms)
