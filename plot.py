@@ -12,9 +12,9 @@ if __name__ == "__main__":
     outDir = argv[2]
 
     for i in range(30):
-        inputFile = f"fitnessStatsGen{i}.csv"
-        outputFitnessFile = f"fitnessGen{i}.png"
-        outputObjectiveFile = f"objectiveGen{i}.png"
+        inputFile = f"fitnessStatsRun{i}.csv"
+        outputFitnessFile = f"fitnessRun{i}.png"
+        outputObjectiveFile = f"objectiveRun{i}.png"
         inputRelPath = path.join("./", dataDir, inputFile)
         outputRelPathFitness = path.join("./", outDir, outputFitnessFile)
         outputRelPathObjective = path.join("./", outDir, outputObjectiveFile)

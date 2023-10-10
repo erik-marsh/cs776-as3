@@ -85,7 +85,7 @@ int main()
     {
         Statistics stats = RunGeneticAlgorithm();
         std::stringstream filename;
-        filename << "data/fitnessStatsGen" << i << ".csv";
+        filename << "data/fitnessStatsRun" << i << ".csv";
         std::ofstream outFile(filename.str());
         OutputStatistics(stats, outFile);
     }
