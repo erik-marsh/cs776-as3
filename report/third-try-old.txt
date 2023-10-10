@@ -1,0 +1,11 @@
+same as last try but i upped the number of generations from 50 to 250 (2.5x the population size)
+no real difference
+its worth noting that i changed the fitness function from a 1/x form to a C-x form
+and now we have sensible fitness values!
+
+
+i went back and tried 50 gens again
+
+min => [0, 0]
+max => [~73, ~81]
+avg => [~40, ~65]
