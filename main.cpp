@@ -1,18 +1,20 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <random>
-#include <vector>
+#include <sstream>
 #include <thread>
+#include <vector>
 
 #define cimg_display 0
 #include "CImg/CImg.h"
 #include "Rooms.hpp"
 #include "encoding.hpp"
 
-constexpr int NUM_GENERATIONS = 250; //50;
+constexpr int NUM_GENERATIONS = 250;  // 50;
 constexpr int GENERATION_SIZE = 100;
 constexpr double CROSSOVER_PROB = 0.7;
 constexpr double MUTATION_PROB = 0.001;
@@ -43,6 +45,7 @@ using ProbDist = std::array<double, GENERATION_SIZE>;
 
 Statistics RunGeneticAlgorithm();
 void GenerationStatistics(Statistics& stats, Population& population, int gen);
+void OutputStatistics(Statistics& stats, std::ostream& outStream);
 float GenerateFloatInRange(std::mt19937& generator, const Range<float> range);
 void InitializeIndividual(std::mt19937& generator, Individual& x);
 float GetFitness(RoomSet& rooms);
@@ -81,8 +84,10 @@ int main()
     for (int i = 0; i < 30; i++)
     {
         Statistics stats = RunGeneticAlgorithm();
-        for (float val : stats.avgFitnesses)
-            std::cout << "avg fitness: " << val << "\n";
+        std::stringstream filename;
+        filename << "data/fitnessStatsGen" << i << ".csv";
+        std::ofstream outFile(filename.str());
+        OutputStatistics(stats, outFile);
     }
 
     return 0;
@@ -187,6 +192,22 @@ void GenerationStatistics(Statistics& stats, Population& population, int gen)
     stats.minFitnesses[gen] = minFitness;
     stats.maxFitnesses[gen] = maxFitness;
     stats.avgFitnesses[gen] = sumFitness / population.size();
+}
+
+void OutputStatistics(Statistics& stats, std::ostream& outStream)
+{
+    // prints the statistics in a friendly format
+    // for consumption by a python script
+    outStream << "MinFitness,MaxFitness,AvgFitness,MinObjective,MaxObjective,AvgObjective\n";
+    for (int i = 0; i < stats.avgFitnesses.size(); i++)
+    {
+        outStream << stats.minFitnesses[i] << ",";
+        outStream << stats.maxFitnesses[i] << ",";
+        outStream << stats.avgFitnesses[i] << ",";
+        outStream << stats.minObjective[i] << ",";
+        outStream << stats.maxObjective[i] << ",";
+        outStream << stats.avgObjective[i] << "\n";
+    }
 }
 
 float GenerateFloatInRange(std::mt19937& generator, const Range<float> range)
