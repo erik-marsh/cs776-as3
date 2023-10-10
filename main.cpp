@@ -12,7 +12,7 @@
 #include "Rooms.hpp"
 #include "encoding.hpp"
 
-constexpr int NUM_GENERATIONS = 50;
+constexpr int NUM_GENERATIONS = 250; //50;
 constexpr int GENERATION_SIZE = 100;
 constexpr double CROSSOVER_PROB = 0.7;
 constexpr double MUTATION_PROB = 0.001;
@@ -20,13 +20,29 @@ constexpr double MUTATION_PROB = 0.001;
 struct Individual
 {
     Chromosome chromosome;
+    float objective;
     float fitness;
+};
+
+struct Statistics
+{
+    std::random_device::result_type seed;
+
+    // The +1 is so we include the initial generation
+    std::array<float, NUM_GENERATIONS + 1> minFitnesses;
+    std::array<float, NUM_GENERATIONS + 1> maxFitnesses;
+    std::array<float, NUM_GENERATIONS + 1> avgFitnesses;
+
+    std::array<float, NUM_GENERATIONS + 1> minObjective;
+    std::array<float, NUM_GENERATIONS + 1> maxObjective;
+    std::array<float, NUM_GENERATIONS + 1> avgObjective;
 };
 
 using Population = std::array<Individual, GENERATION_SIZE>;
 using ProbDist = std::array<double, GENERATION_SIZE>;
 
-void RunGeneticAlgorithm();
+Statistics RunGeneticAlgorithm();
+void GenerationStatistics(Statistics& stats, Population& population, int gen);
 float GenerateFloatInRange(std::mt19937& generator, const Range<float> range);
 void InitializeIndividual(std::mt19937& generator, Individual& x);
 float GetFitness(RoomSet& rooms);
@@ -64,38 +80,22 @@ int main()
 
     for (int i = 0; i < 30; i++)
     {
-        RunGeneticAlgorithm();
+        Statistics stats = RunGeneticAlgorithm();
+        for (float val : stats.avgFitnesses)
+            std::cout << "avg fitness: " << val << "\n";
     }
-
-    // auto newPopulation = Select_old(randContext, population);
-    // for (Individual& indiv : newPopulation)
-    // {
-    //     for (auto val : indiv.GetFirstDouble())
-    //         std::cout << (int)val;
-    //     std::cout << " | ";
-    //     for (auto val : indiv.GetSecondDouble())
-    //         std::cout << (int)val;
-    //     std::cout << " | Fitness: " << indiv.fitness << "\n";
-    // }
-
-    // std::cout << "\n";
-    // for (auto val : newPopulation[17].GetFirstDouble())
-    //     std::cout << (int)val;
-    // for (auto val : newPopulation[17].GetSecondDouble())
-    //     std::cout << (int)val;
-    // std::cout << "\n";
-    // for (auto val : newPopulation[17].chromosome)
-    //     std::cout << (int)val;
-    // std::cout << "\n";
 
     return 0;
 }
 
-void RunGeneticAlgorithm()
+Statistics RunGeneticAlgorithm()
 {
+    Statistics stats;
+
     std::random_device device{};
     auto seed = device();
     std::mt19937 generator{seed};
+    stats.seed = seed;
 
     std::cout << "Running GA with seed " << static_cast<unsigned int>(seed) << "...\n";
 
@@ -106,13 +106,15 @@ void RunGeneticAlgorithm()
         InitializeIndividual(generator, individual);
         // std::cout << "\n\n==================== INDIVIDUAL " << i << "====================\n";
         // PrintChromosome(individual.chromosome);
-        auto roomset = DecodeChromosome(individual.chromosome);
+        auto roomSet = DecodeChromosome(individual.chromosome);
         // PrintRoomSet(roomset);
 
-        individual.fitness = GetFitness(roomset);
+        individual.objective = ObjectiveFunction(roomSet);
+        individual.fitness = GetFitness(roomSet);
     }
 
-    std::cout << "Finished initialization...\n";
+    GenerationStatistics(stats, population, 0);
+    // std::cout << "Finished initialization...\n";
 
     for (int gen = 0; gen < NUM_GENERATIONS; gen++)
     {
@@ -137,6 +139,7 @@ void RunGeneticAlgorithm()
             for (auto& c : children)
             {
                 auto roomSet = DecodeChromosome(c.chromosome);
+                c.objective = ObjectiveFunction(roomSet);
                 c.fitness = GetFitness(roomSet);
 
                 // std::cout << "    Got child ";
@@ -149,26 +152,41 @@ void RunGeneticAlgorithm()
             newGeneration[i + 1] = children[1];
         }
 
-        double minFitness = std::numeric_limits<double>::max();
-        double maxFitness = std::numeric_limits<double>::lowest();
-        double sumFitness = 0.0;
-        for (auto& indiv : newGeneration)
-        {
-            // for (auto val : indiv.chromosome)
-            //     std::cout << (int)val;
-            // std::cout << " (Fitness=" << indiv.fitness << ")\n";
-
-            if (indiv.fitness < minFitness) minFitness = indiv.fitness;
-            if (indiv.fitness > maxFitness) maxFitness = indiv.fitness;
-            sumFitness += indiv.fitness;
-        }
-
-        std::cout << "Min fitness: " << minFitness << "\t";
-        std::cout << "Max fitness: " << maxFitness << "\t";
-        std::cout << "Avg fitness: " << sumFitness / newGeneration.size() << "\n";
-
+        GenerationStatistics(stats, newGeneration, gen + 1);
         population = newGeneration;
     }
+
+    return stats;
+}
+
+void GenerationStatistics(Statistics& stats, Population& population, int gen)
+{
+    double minFitness = std::numeric_limits<double>::max();
+    double maxFitness = std::numeric_limits<double>::lowest();
+    double sumFitness = 0.0;
+
+    double minObjective = std::numeric_limits<double>::max();
+    double maxObjective = std::numeric_limits<double>::lowest();
+    double sumObjective = 0.0;
+
+    for (auto& indiv : population)
+    {
+        if (indiv.objective < minObjective) minObjective = indiv.objective;
+        if (indiv.objective > maxObjective) maxObjective = indiv.objective;
+        sumObjective += indiv.objective;
+
+        if (indiv.fitness < minFitness) minFitness = indiv.fitness;
+        if (indiv.fitness > maxFitness) maxFitness = indiv.fitness;
+        sumFitness += indiv.fitness;
+    }
+
+    stats.minObjective[gen] = minObjective;
+    stats.maxObjective[gen] = maxObjective;
+    stats.avgObjective[gen] = sumObjective / population.size();
+
+    stats.minFitnesses[gen] = minFitness;
+    stats.maxFitnesses[gen] = maxFitness;
+    stats.avgFitnesses[gen] = sumFitness / population.size();
 }
 
 float GenerateFloatInRange(std::mt19937& generator, const Range<float> range)
@@ -308,8 +326,8 @@ void InitializeIndividual(std::mt19937& generator, Individual& x)
     }
 
     x.chromosome = EncodeChromosome(roomSet);
-    PrintRoomSet(roomSet);
-    PrintChromosome(x.chromosome);
+    // PrintRoomSet(roomSet);
+    // PrintChromosome(x.chromosome);
 
     static constexpr std::array<uint8_t, 3> livingColor{255, 0, 0};    // red
     static constexpr std::array<uint8_t, 3> kitchenColor{0, 255, 0};   // green
@@ -326,31 +344,31 @@ void InitializeIndividual(std::mt19937& generator, Individual& x)
     // y 0
     // |
     // V 1023 (width)
-    cimg_library::CImg<uint8_t> image(1024, 1024, 1, 3, 0);
-    for (int i = 0; i < NUM_ROOMS; i++)
-    {
-        Room& room = roomSet[i];
-        const int xRoot = static_cast<int>(room.x * 10.0f);
-        const int yRoot = static_cast<int>(room.y * 10.0f);
-        const int length = static_cast<int>(room.length * 10.0f);
-        const int width = static_cast<int>(room.width * 10.0f);
+    // cimg_library::CImg<uint8_t> image(1024, 1024, 1, 3, 0);
+    // for (int i = 0; i < NUM_ROOMS; i++)
+    // {
+    //     Room& room = roomSet[i];
+    //     const int xRoot = static_cast<int>(room.x * 10.0f);
+    //     const int yRoot = static_cast<int>(room.y * 10.0f);
+    //     const int length = static_cast<int>(room.length * 10.0f);
+    //     const int width = static_cast<int>(room.width * 10.0f);
 
-        const int xMax = xRoot + length > 1023 ? 1023 : xRoot + length;
-        const int yMax = yRoot + width > 1023 ? 1023 : yRoot + width;
+    //     const int xMax = xRoot + length > 1023 ? 1023 : xRoot + length;
+    //     const int yMax = yRoot + width > 1023 ? 1023 : yRoot + width;
 
-        for (int x = xRoot; x < xMax; x++)
-        {
-            for (int y = yRoot; y < yMax; y++)
-            {
-                image(x, y, 0, 0) = colors[i][0];
-                image(x, y, 0, 1) = colors[i][1];
-                image(x, y, 0, 2) = colors[i][2];
-            }
-        }
-    }
-    image.save_jpeg("out.jpeg");
+    //     for (int x = xRoot; x < xMax; x++)
+    //     {
+    //         for (int y = yRoot; y < yMax; y++)
+    //         {
+    //             image(x, y, 0, 0) = colors[i][0];
+    //             image(x, y, 0, 1) = colors[i][1];
+    //             image(x, y, 0, 2) = colors[i][2];
+    //         }
+    //     }
+    // }
+    // image.save_jpeg("out.jpeg");
 
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    // std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 float GetFitness(RoomSet& rooms)
