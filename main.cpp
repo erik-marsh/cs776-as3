@@ -19,6 +19,12 @@ constexpr int GENERATION_SIZE = 100;
 constexpr double CROSSOVER_PROB = 0.7;
 constexpr double MUTATION_PROB = 0.001;
 
+struct EvaluationResult
+{
+    float objective;
+    float fitness;
+};
+
 struct Individual
 {
     Chromosome chromosome;
@@ -48,7 +54,8 @@ void GenerationStatistics(Statistics& stats, Population& population, int gen);
 void OutputStatistics(Statistics& stats, std::ostream& outStream);
 float GenerateFloatInRange(std::mt19937& generator, const Range<float> range);
 void InitializeIndividual(std::mt19937& generator, Individual& x);
-float GetFitness(RoomSet& rooms);
+// float GetFitness(RoomSet& rooms);
+EvaluationResult EvaluateIndividual(RoomSet& rooms);
 ProbDist MakeCumulativeProbDist(Population& pop);
 std::array<Individual, 2> Select(std::mt19937& generator, ProbDist& cdf, Population& pop);
 std::array<Individual, 2> Crossover(std::mt19937& generator, std::array<Individual, 2>& parents);
@@ -114,8 +121,11 @@ Statistics RunGeneticAlgorithm()
         auto roomSet = DecodeChromosome(individual.chromosome);
         // PrintRoomSet(roomset);
 
-        individual.objective = ObjectiveFunction(roomSet);
-        individual.fitness = GetFitness(roomSet);
+        // individual.objective = ObjectiveFunction(roomSet);
+        // individual.fitness = GetFitness(roomSet);
+        auto result = EvaluateIndividual(roomSet);
+        individual.objective = result.objective;
+        individual.fitness = result.fitness;
     }
 
     GenerationStatistics(stats, population, 0);
@@ -144,8 +154,11 @@ Statistics RunGeneticAlgorithm()
             for (auto& c : children)
             {
                 auto roomSet = DecodeChromosome(c.chromosome);
-                c.objective = ObjectiveFunction(roomSet);
-                c.fitness = GetFitness(roomSet);
+                // c.objective = ObjectiveFunction(roomSet);
+                // c.fitness = GetFitness(roomSet);
+                auto result = EvaluateIndividual(roomSet);
+                c.objective = result.objective;
+                c.fitness = result.fitness;
 
                 // std::cout << "    Got child ";
                 // for (auto val : c.chromosome)
@@ -392,29 +405,51 @@ void InitializeIndividual(std::mt19937& generator, Individual& x)
     // std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
-float GetFitness(RoomSet& rooms)
+// float GetFitness(RoomSet& rooms)
+// {
+//     // if at least one constraint is not met,
+//     // the entire chromosome is invalid and should have close to zero fitness
+//     // (we can't use pure zero because of the way the CDF is calculated)
+//     constexpr float invalidFitness = 0.0f;
+
+//     bool doesFit = true;
+//     for (Room& room : rooms)
+//     {
+//         if (!DoesRoomFitConstraints(room))
+//         {
+//             // std::cout << "Objective: Invalid\n";
+//             // std::cout << "Fitness..: " << invalidFitness << "\n";
+//             return invalidFitness;
+//         }
+//     }
+
+//     float objective = doesFit ? ObjectiveFunction(rooms) : 0.0f;
+//     // std::cout << "Objective: " << objective << "\n";
+//     float fitness = ObjectiveToFitness(objective);
+//     // std::cout << "Fitness..: " << fitness << "\n";
+//     return fitness;
+// }
+
+EvaluationResult EvaluateIndividual(RoomSet& rooms)
 {
-    // if at least one constraint is not met,
-    // the entire chromosome is invalid and should have close to zero fitness
-    // (we can't use pure zero because of the way the CDF is calculated)
-    constexpr float invalidFitness = 0.0f;
+    // a further modification is needed here
+    // invalid rooms should be assessed on an individual basis
+    // e.g a layout with one invalid room should be more fit than one with five invalid rooms
+    // an invalid room with have an objective value of ${ROOM}_AREA.high
+    // (the maximum area and thus maximum cost)
 
-    bool doesFit = true;
-    for (Room& room : rooms)
+    float objective = 0.0f;
+    for (int i = 0; i < NUM_ROOMS; i++)
     {
-        if (!DoesRoomFitConstraints(room))
-        {
-            // std::cout << "Objective: Invalid\n";
-            // std::cout << "Fitness..: " << invalidFitness << "\n";
-            return invalidFitness;
-        }
+        Room& room = rooms[i];
+        objective += DoesRoomFitConstraints(room) ? RoomCost(room) : INVALID_OBJECTIVE[i];
     }
-
-    float objective = doesFit ? ObjectiveFunction(rooms) : 0.0f;
-    // std::cout << "Objective: " << objective << "\n";
     float fitness = ObjectiveToFitness(objective);
-    // std::cout << "Fitness..: " << fitness << "\n";
-    return fitness;
+
+    EvaluationResult ret;
+    ret.objective = objective;
+    ret.fitness = fitness;
+    return ret;
 }
 
 ProbDist MakeCumulativeProbDist(Population& pop)
