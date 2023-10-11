@@ -56,6 +56,7 @@ void GenerationStatistics(Statistics& stats, Population& population, int gen);
 void OutputStatistics(Statistics& stats, std::ostream& outStream);
 float GenerateFloatInRange(std::mt19937& generator, const Range<float> range);
 void InitializeIndividual(std::mt19937& generator, Individual& x);
+void DrawRoomSet(RoomSet& roomSet);
 // float GetFitness(RoomSet& rooms);
 EvaluationResult EvaluateIndividual(RoomSet& rooms);
 ProbDist MakeCumulativeProbDist(Population& pop);
@@ -376,74 +377,143 @@ void InitializeIndividual(std::mt19937& generator, Individual& x)
 
     // i don't currently care about position,
     // so we can initialize them all randomly in one go
-    for (int i = 0; i < NUM_ROOMS; i++)
-    {
-        bool didCollide;
-        // keep attempting to generate rooms until none of them collide
-        do
-        {
-            didCollide = false;
-            Range<float> xRange(0.0f, 102.3f - roomSet[i].length);
-            Range<float> yRange(0.0f, 102.3f - roomSet[i].width);
-            roomSet[i].x = GenerateFloatInRange(generator, xRange);
-            roomSet[i].y = GenerateFloatInRange(generator, yRange);
+    // for (int i = 0; i < NUM_ROOMS; i++)
+    // {
+    //     bool didCollide;
+    //     // keep attempting to generate rooms until none of them collide
+    //     do
+    //     {
+    //         didCollide = false;
+    //         Range<float> xRange(0.0f, 102.3f - roomSet[i].length);
+    //         Range<float> yRange(0.0f, 102.3f - roomSet[i].width);
+    //         roomSet[i].x = GenerateFloatInRange(generator, xRange);
+    //         roomSet[i].y = GenerateFloatInRange(generator, yRange);
 
-            // should not execute for i = 0
-            for (int j = 0; j < i; j++)
-            {
-                if (DoRoomsCollide(roomSet[j], roomSet[i]))
-                {
-                    didCollide = true;
-                    break;
-                }
-            }
-        } while (didCollide);
+    //         // should not execute for i = 0
+    //         for (int j = 0; j < i; j++)
+    //         {
+    //             if (DoRoomsCollide(roomSet[j], roomSet[i]))
+    //             {
+    //                 didCollide = true;
+    //                 break;
+    //             }
+    //         }
+    //     } while (didCollide);
+    // }
+
+    // we actually don't care about position at all
+    // so let's just generate one randomly and call it a day
+    // (because I don't want to re-write my encoders/decoders)
+    for (Room& room : roomSet)
+    {
+        room.x = GenerateFloatInRange(generator, defaultRange);
+        room.y = GenerateFloatInRange(generator, defaultRange);
     }
 
     x.chromosome = EncodeChromosome(roomSet);
+    DrawRoomSet(roomSet);
     PrintRoomSet(roomSet);
     PrintChromosome(x.chromosome);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+}
 
-    static constexpr std::array<uint8_t, 3> livingColor{255, 0, 0};    // red
-    static constexpr std::array<uint8_t, 3> kitchenColor{0, 255, 0};   // green
-    static constexpr std::array<uint8_t, 3> bathColor{0, 0, 255};      // blue
-    static constexpr std::array<uint8_t, 3> hallColor{128, 128, 128};  // gray
-    static constexpr std::array<uint8_t, 3> bed1Color{255, 0, 255};    // purple
-    static constexpr std::array<uint8_t, 3> bed2Color{0, 255, 255};    // cyan
-    static constexpr std::array<uint8_t, 3> bed3Color{255, 255, 0};    // yellow
-    static constexpr std::array colors = {livingColor, kitchenColor, bathColor, hallColor,
-                                          bed1Color,   bed2Color,    bed3Color};
+void DrawRoomSet(RoomSet& roomSet)
+{
+    constexpr int backgroundColor = 47;  // shades of gray, i.e. R=G=B=backgroundColor
+    static constexpr std::array<uint8_t, 3> borderColor{255, 255, 255};
+    static constexpr std::array<uint8_t, 3> invalidColor{191, 191, 191};
+
+    // default matplotlib color cycle
+    // ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
+    static constexpr std::array<uint8_t, 3> livingColor{0x1f, 0x77, 0xb4};
+    static constexpr std::array<uint8_t, 3> kitchenColor{0xff, 0x7f, 0x0e};
+    static constexpr std::array<uint8_t, 3> bathColor{0x2c, 0xa0, 0x2c};
+    static constexpr std::array<uint8_t, 3> hallColor{0xd6, 0x27, 0x28};
+    static constexpr std::array<uint8_t, 3> bed1Color{0x94, 0x67, 0xbd};
+    static constexpr std::array<uint8_t, 3> bed2Color{0x8c, 0x56, 0x4b};
+    static constexpr std::array<uint8_t, 3> bed3Color{0xe3, 0x77, 0xc2};
+    static constexpr std::array roomColors = {livingColor, kitchenColor, bathColor, hallColor,
+                                              bed1Color,   bed2Color,    bed3Color};
+
+    // maximum possible room length and width is both 20.0f units
+    // which is 200px at a precision of 0.1f
+    constexpr int squareLength = 200;
+    constexpr int paddingPixels = 10;
+
+    // image will be a 4x2 grid of squares used to visualize room areas
+    constexpr int imageLength = (5 * paddingPixels) + (4 * squareLength);
+    constexpr int imageWidth = (3 * paddingPixels) + (2 * squareLength);
+
+    std::array<int, NUM_ROOMS> roomOffsetX;
+    std::array<int, NUM_ROOMS> roomOffsetY;
+    for (int i = 0; i < NUM_ROOMS; i++)
+    {
+        const int col = i % 4;
+        const int row = i / 4;
+        roomOffsetX[i] = paddingPixels + (col * (squareLength + paddingPixels));
+        roomOffsetY[i] = paddingPixels + (row * (squareLength + paddingPixels));
+    }
 
     // image layout is...
     // x 0 -> 1023 (length)
     // y 0
     // |
     // V 1023 (width)
-    cimg_library::CImg<uint8_t> image(1024, 1024, 1, 3, 0);
+    cimg_library::CImg<uint8_t> image(imageLength, imageWidth, 1, 3, backgroundColor);
     for (int i = 0; i < NUM_ROOMS; i++)
     {
         Room& room = roomSet[i];
-        const int xRoot = static_cast<int>(room.x * 10.0f);
-        const int yRoot = static_cast<int>(room.y * 10.0f);
+
+        // draw the frames that the rooms will inhabit
+        for (int x = roomOffsetX[i]; x < roomOffsetX[i] + squareLength; x++)
+        {
+            image(x, roomOffsetY[i], 0, 0) = borderColor[0];
+            image(x, roomOffsetY[i], 0, 1) = borderColor[1];
+            image(x, roomOffsetY[i], 0, 2) = borderColor[2];
+
+            image(x, roomOffsetY[i] + squareLength, 0, 0) = borderColor[0];
+            image(x, roomOffsetY[i] + squareLength, 0, 1) = borderColor[1];
+            image(x, roomOffsetY[i] + squareLength, 0, 2) = borderColor[2];
+        }
+
+        for (int y = roomOffsetY[i]; y < roomOffsetY[i] + squareLength; y++)
+        {
+            image(roomOffsetX[i], y, 0, 0) = borderColor[0];
+            image(roomOffsetX[i], y, 0, 1) = borderColor[1];
+            image(roomOffsetX[i], y, 0, 2) = borderColor[2];
+
+            image(roomOffsetX[i] + squareLength, y, 0, 0) = borderColor[0];
+            image(roomOffsetX[i] + squareLength, y, 0, 1) = borderColor[1];
+            image(roomOffsetX[i] + squareLength, y, 0, 2) = borderColor[2];
+        }
+
         const int length = static_cast<int>(room.length * 10.0f);
         const int width = static_cast<int>(room.width * 10.0f);
 
-        const int xMax = xRoot + length > 1023 ? 1023 : xRoot + length;
-        const int yMax = yRoot + width > 1023 ? 1023 : yRoot + width;
+        const int xMax = roomOffsetX[i] + length;
+        const int yMax = roomOffsetY[i] + width;
 
-        for (int x = xRoot; x < xMax; x++)
+        // fill the frame with the room's dimensions
+        for (int x = roomOffsetX[i]; x < xMax; x++)
         {
-            for (int y = yRoot; y < yMax; y++)
+            for (int y = roomOffsetY[i]; y < yMax; y++)
             {
-                image(x, y, 0, 0) = colors[i][0];
-                image(x, y, 0, 1) = colors[i][1];
-                image(x, y, 0, 2) = colors[i][2];
+                if (DoesRoomFitConstraints(room))
+                {
+                    image(x, y, 0, 0) = roomColors[i][0];
+                    image(x, y, 0, 1) = roomColors[i][1];
+                    image(x, y, 0, 2) = roomColors[i][2];
+                }
+                else
+                {
+                    image(x, y, 0, 0) = invalidColor[0];
+                    image(x, y, 0, 1) = invalidColor[1];
+                    image(x, y, 0, 2) = invalidColor[2];
+                }
             }
         }
     }
-    image.save_jpeg("out.jpeg");
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    image.save_png("out.png");
 }
 
 // float GetFitness(RoomSet& rooms)

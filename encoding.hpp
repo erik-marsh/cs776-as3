@@ -10,6 +10,7 @@ constexpr int FLOAT_BITWIDTH = 10;
 constexpr int ROOM_BITWIDTH = FLOAT_BITWIDTH * 4;
 constexpr int CHROMOSOME_BITWIDTH = ROOM_BITWIDTH * NUM_ROOMS;
 
+// objective function values to use if a certain room is invalid
 constexpr std::array INVALID_OBJECTIVE = {
     LIVING_AREA.high, KITCHEN_AREA.high, BATH_WIDTH * BATH_LENGTH, HALL_AREA.high,
     BED1_AREA.high,   BED2_AREA.high,    BED3_AREA.high};

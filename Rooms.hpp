@@ -66,8 +66,8 @@ struct Room
 {
     float length;
     float width;
-    float x;
-    float y;
+    float x;  // vestigial, kept so encodings don't screw up
+    float y;  // vestigial, kept so encodings don't screw up
     RoomType type;
 };
 

@@ -29,8 +29,8 @@ Chromosome EncodeChromosome(RoomSet& rooms)
     {
         auto lengthEncoded = EncodeFloat(rooms[i].length);
         auto widthEncoded = EncodeFloat(rooms[i].width);
-        auto xEncoded = EncodeFloat(rooms[i].x);
-        auto yEncoded = EncodeFloat(rooms[i].y);
+        auto xEncoded = EncodeFloat(rooms[i].x);  // vestigial, kept so encodings don't screw up
+        auto yEncoded = EncodeFloat(rooms[i].y);  // vestigial, kept so encodings don't screw up
 
         std::array iter = {lengthEncoded, widthEncoded, xEncoded, yEncoded};
         for (int j = 0; j < iter.size(); j++)
@@ -74,8 +74,8 @@ RoomSet DecodeChromosome(Chromosome& chromosome)
 
         room.length = roomVals[0];
         room.width = roomVals[1];
-        room.x = roomVals[2];
-        room.y = roomVals[3];
+        room.x = roomVals[2];  // vestigial, kept so encodings don't screw up
+        room.y = roomVals[3];  // vestigial, kept so encodings don't screw up
         room.type = roomTypes[i];
         ret[i] = room;
     }
@@ -155,9 +155,9 @@ void PrintRoomSet(RoomSet& rooms)
         std::printf("%s%10.6f%s | ", (validity.widthMet ? defaultText.data() : redText.data()),
                     room.width, resetText.data());
         std::printf("%s%10.6f%s | ", (validity.xMet ? defaultText.data() : redText.data()), room.x,
-                    resetText.data());
+                    resetText.data());  // vestigial, kept so encodings don't screw up
         std::printf("%s%10.6f%s | ", (validity.yMet ? defaultText.data() : redText.data()), room.y,
-                    resetText.data());
+                    resetText.data());  // vestigial, kept so encodings don't screw up
         std::printf("%s%12.6f%s | ", (validity.areaMet ? defaultText.data() : redText.data()), area,
                     resetText.data());
         std::printf("%s%10.6f%s | ", (validity.proportionMet ? defaultText.data() : redText.data()),
