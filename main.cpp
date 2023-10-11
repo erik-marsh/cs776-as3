@@ -8,13 +8,15 @@
 #include <sstream>
 #include <thread>
 #include <vector>
+#include <filesystem>
 
 #define cimg_display 0
 #include "CImg/CImg.h"
 #include "Rooms.hpp"
 #include "encoding.hpp"
 
-constexpr int NUM_GENERATIONS = 250;  // 50;
+constexpr int NUM_TRIALS = 30;
+constexpr int NUM_GENERATIONS = 50;
 constexpr int GENERATION_SIZE = 100;
 constexpr double CROSSOVER_PROB = 0.7;
 constexpr double MUTATION_PROB = 0.001;
@@ -61,41 +63,62 @@ std::array<Individual, 2> Select(std::mt19937& generator, ProbDist& cdf, Populat
 std::array<Individual, 2> Crossover(std::mt19937& generator, std::array<Individual, 2>& parents);
 uint8_t MutateBit(std::mt19937& generator, uint8_t bit);
 
+// TODO: do the reliability, quality, speed metrics thing
+// TODO: keep a log of the best individuals for each generation
+
 int main()
 {
-    // struct Individual:
-    //     std::vector<uint8_t> chromosome;
-    //     // decoded chromosome value (not necessary), aka std::vector<double>
-    //     double fitness;
-    //     indices(?) of parents (not necessary?)
+    // Make sure the data directory exists
+    if (!std::filesystem::exists("data"))
+        std::filesystem::create_directory("data");
 
-    // struct Population:
-    //     // arrays of populations, pointer swap trick
-    //     // metrics like chromosome length and generation number
-    //     // fitness metrics
-    //     // probabilities for stuff
-    //     // indices of the best and worst fitnesses
-    //     // metrics of the generation max and population size
+    // We need to summarize the summary statistics for each generation
+    // (The average is over NUM_TRIALS runs)
+    std::array<Statistics, NUM_TRIALS> uberStats;
 
-    // generate population_0
-    // evaluate population_0
-    // for (t = 0; t < maxGens; t++):
-    //     Select population_t+1 from population_t
-    //     NOTE: this is done for every single pair of individuals that we selected
-    //         Recombine population_t+1
-    //         Evaluate population_t+1
-    //     do some bookkeeping
-
-    // std::cout << std::fixed << std::setprecision(6);
-
-    for (int i = 0; i < 30; i++)
+    for (int i = 0; i < NUM_TRIALS; i++)
     {
         Statistics stats = RunGeneticAlgorithm();
         std::stringstream filename;
-        filename << "data/fitnessStatsRun" << i << ".csv";
+        filename << "data/stats-trial-" << i << ".csv";
         std::ofstream outFile(filename.str());
         OutputStatistics(stats, outFile);
+        uberStats[i] = stats;
     }
+
+    Statistics uberSummary;
+    for (int i = 0; i < NUM_GENERATIONS + 1; i++)
+    {
+        float sumMinObjective = 0.0f;
+        float sumMaxObjective = 0.0f;
+        float sumAvgObjective = 0.0f;
+
+        float sumMinFitness = 0.0f;
+        float sumMaxFitness = 0.0f;
+        float sumAvgFitness = 0.0f;
+
+        for (Statistics& stats : uberStats)
+        {
+            sumMinObjective += stats.minObjective[i];
+            sumMaxObjective += stats.maxObjective[i];
+            sumAvgObjective += stats.avgObjective[i];
+
+            sumMinFitness += stats.minFitnesses[i];
+            sumMaxFitness += stats.maxFitnesses[i];
+            sumAvgFitness += stats.avgFitnesses[i];
+        }
+
+        uberSummary.minObjective[i] = sumMinObjective / uberStats.size();
+        uberSummary.maxObjective[i] = sumMaxObjective / uberStats.size();
+        uberSummary.avgObjective[i] = sumAvgObjective / uberStats.size();
+
+        uberSummary.minFitnesses[i] = sumMinFitness / uberStats.size();
+        uberSummary.maxFitnesses[i] = sumMaxFitness / uberStats.size();
+        uberSummary.avgFitnesses[i] = sumAvgFitness / uberStats.size();
+    }
+
+    std::ofstream outFile("data/stats-average.csv");
+    OutputStatistics(uberSummary, outFile);
 
     return 0;
 }
@@ -211,6 +234,7 @@ void OutputStatistics(Statistics& stats, std::ostream& outStream)
 {
     // prints the statistics in a friendly format
     // for consumption by a python script
+    outStream << std::fixed << std::setprecision(6);
     outStream << "MinFitness,MaxFitness,AvgFitness,MinObjective,MaxObjective,AvgObjective\n";
     for (int i = 0; i < stats.avgFitnesses.size(); i++)
     {
