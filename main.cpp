@@ -1,6 +1,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -8,7 +9,6 @@
 #include <sstream>
 #include <thread>
 #include <vector>
-#include <filesystem>
 
 #define cimg_display 0
 #include "CImg/CImg.h"
@@ -69,8 +69,7 @@ uint8_t MutateBit(std::mt19937& generator, uint8_t bit);
 int main()
 {
     // Make sure the data directory exists
-    if (!std::filesystem::exists("data"))
-        std::filesystem::create_directory("data");
+    if (!std::filesystem::exists("data")) std::filesystem::create_directory("data");
 
     // We need to summarize the summary statistics for each generation
     // (The average is over NUM_TRIALS runs)
@@ -377,12 +376,28 @@ void InitializeIndividual(std::mt19937& generator, Individual& x)
 
     // i don't currently care about position,
     // so we can initialize them all randomly in one go
-    for (Room& room : roomSet)
+    for (int i = 0; i < NUM_ROOMS; i++)
     {
-        Range<float> xRange(0.0f, 102.3f - room.length);
-        Range<float> yRange(0.0f, 102.3f - room.width);
-        room.x = GenerateFloatInRange(generator, xRange);
-        room.y = GenerateFloatInRange(generator, yRange);
+        bool didCollide;
+        // keep attempting to generate rooms until none of them collide
+        do
+        {
+            didCollide = false;
+            Range<float> xRange(0.0f, 102.3f - roomSet[i].length);
+            Range<float> yRange(0.0f, 102.3f - roomSet[i].width);
+            roomSet[i].x = GenerateFloatInRange(generator, xRange);
+            roomSet[i].y = GenerateFloatInRange(generator, yRange);
+
+            // should not execute for i = 0
+            for (int j = 0; j < i; j++)
+            {
+                if (DoRoomsCollide(roomSet[j], roomSet[i]))
+                {
+                    didCollide = true;
+                    break;
+                }
+            }
+        } while (didCollide);
     }
 
     x.chromosome = EncodeChromosome(roomSet);
