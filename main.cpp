@@ -379,13 +379,15 @@ void InitializeIndividual(std::mt19937& generator, Individual& x)
     // so we can initialize them all randomly in one go
     for (Room& room : roomSet)
     {
-        room.x = GenerateFloatInRange(generator, defaultRange);
-        room.y = GenerateFloatInRange(generator, defaultRange);
+        Range<float> xRange(0.0f, 102.3f - room.length);
+        Range<float> yRange(0.0f, 102.3f - room.width);
+        room.x = GenerateFloatInRange(generator, xRange);
+        room.y = GenerateFloatInRange(generator, yRange);
     }
 
     x.chromosome = EncodeChromosome(roomSet);
-    // PrintRoomSet(roomSet);
-    // PrintChromosome(x.chromosome);
+    PrintRoomSet(roomSet);
+    PrintChromosome(x.chromosome);
 
     static constexpr std::array<uint8_t, 3> livingColor{255, 0, 0};    // red
     static constexpr std::array<uint8_t, 3> kitchenColor{0, 255, 0};   // green
@@ -402,31 +404,31 @@ void InitializeIndividual(std::mt19937& generator, Individual& x)
     // y 0
     // |
     // V 1023 (width)
-    // cimg_library::CImg<uint8_t> image(1024, 1024, 1, 3, 0);
-    // for (int i = 0; i < NUM_ROOMS; i++)
-    // {
-    //     Room& room = roomSet[i];
-    //     const int xRoot = static_cast<int>(room.x * 10.0f);
-    //     const int yRoot = static_cast<int>(room.y * 10.0f);
-    //     const int length = static_cast<int>(room.length * 10.0f);
-    //     const int width = static_cast<int>(room.width * 10.0f);
+    cimg_library::CImg<uint8_t> image(1024, 1024, 1, 3, 0);
+    for (int i = 0; i < NUM_ROOMS; i++)
+    {
+        Room& room = roomSet[i];
+        const int xRoot = static_cast<int>(room.x * 10.0f);
+        const int yRoot = static_cast<int>(room.y * 10.0f);
+        const int length = static_cast<int>(room.length * 10.0f);
+        const int width = static_cast<int>(room.width * 10.0f);
 
-    //     const int xMax = xRoot + length > 1023 ? 1023 : xRoot + length;
-    //     const int yMax = yRoot + width > 1023 ? 1023 : yRoot + width;
+        const int xMax = xRoot + length > 1023 ? 1023 : xRoot + length;
+        const int yMax = yRoot + width > 1023 ? 1023 : yRoot + width;
 
-    //     for (int x = xRoot; x < xMax; x++)
-    //     {
-    //         for (int y = yRoot; y < yMax; y++)
-    //         {
-    //             image(x, y, 0, 0) = colors[i][0];
-    //             image(x, y, 0, 1) = colors[i][1];
-    //             image(x, y, 0, 2) = colors[i][2];
-    //         }
-    //     }
-    // }
-    // image.save_jpeg("out.jpeg");
+        for (int x = xRoot; x < xMax; x++)
+        {
+            for (int y = yRoot; y < yMax; y++)
+            {
+                image(x, y, 0, 0) = colors[i][0];
+                image(x, y, 0, 1) = colors[i][1];
+                image(x, y, 0, 2) = colors[i][2];
+            }
+        }
+    }
+    image.save_jpeg("out.jpeg");
 
-    // std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 // float GetFitness(RoomSet& rooms)

@@ -16,6 +16,15 @@ float RoomCost(const Room& room)
     return area;
 }
 
+bool DoRoomsCollide(const Room& a, const Room& b)
+{
+    // Simple 2D axis-aligned bounding box collision detection
+    return a.x < (b.x + b.length) &&  // asd
+           (a.x + a.length) > b.x &&  // as
+           a.y < (b.y + b.width) &&   // a
+           (a.y + a.width) > b.y;     // asdfasd
+}
+
 // TODO: float equality will probably need fuzzy equality,
 // since the values produced by the decoder are likely not the same as the literals.
 bool DoesRoomFitConstraints(const Room& room)

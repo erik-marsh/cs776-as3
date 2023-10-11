@@ -83,6 +83,7 @@ struct RoomValidity
 
 bool FuzzyEquals(float x, float y);
 float RoomCost(const Room& room);
+bool DoRoomsCollide(const Room& a, const Room& b);
 bool DoesRoomFitConstraints(const Room& room);
 RoomValidity DoesRoomFitContraintsDiganostic(const Room& room);
 std::string_view RoomTypeToString(RoomType type);
