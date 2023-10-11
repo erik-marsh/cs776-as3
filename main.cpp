@@ -37,6 +37,7 @@ struct Individual
 struct Statistics
 {
     std::random_device::result_type seed;
+    std::array<Individual, NUM_GENERATIONS + 1> fittestIndividuals;
 
     // The +1 is so we include the initial generation
     std::array<float, NUM_GENERATIONS + 1> minFitnesses;
@@ -65,7 +66,6 @@ std::array<Individual, 2> Crossover(std::mt19937& generator, std::array<Individu
 uint8_t MutateBit(std::mt19937& generator, uint8_t bit);
 
 // TODO: do the reliability, quality, speed metrics thing
-// TODO: keep a log of the best individuals for each generation
 
 int main()
 {
@@ -152,7 +152,6 @@ Statistics RunGeneticAlgorithm()
     }
 
     GenerationStatistics(stats, population, 0);
-    // std::cout << "Finished initialization...\n";
 
     for (int gen = 0; gen < NUM_GENERATIONS; gen++)
     {
@@ -210,15 +209,21 @@ void GenerationStatistics(Statistics& stats, Population& population, int gen)
     double maxObjective = std::numeric_limits<double>::lowest();
     double sumObjective = 0.0;
 
-    for (auto& indiv : population)
-    {
-        if (indiv.objective < minObjective) minObjective = indiv.objective;
-        if (indiv.objective > maxObjective) maxObjective = indiv.objective;
-        sumObjective += indiv.objective;
+    int fittestIndex = 0;
 
-        if (indiv.fitness < minFitness) minFitness = indiv.fitness;
-        if (indiv.fitness > maxFitness) maxFitness = indiv.fitness;
-        sumFitness += indiv.fitness;
+    for (int i = 0; i < population.size(); i++)
+    {
+        if (population[i].objective < minObjective) minObjective = population[i].objective;
+        if (population[i].objective > maxObjective) maxObjective = population[i].objective;
+        sumObjective += population[i].objective;
+
+        if (population[i].fitness < minFitness) minFitness = population[i].fitness;
+        if (population[i].fitness > maxFitness)
+        {
+            maxFitness = population[i].fitness;
+            fittestIndex = i;
+        }
+        sumFitness += population[i].fitness;
     }
 
     stats.minObjective[gen] = minObjective;
@@ -228,6 +233,15 @@ void GenerationStatistics(Statistics& stats, Population& population, int gen)
     stats.minFitnesses[gen] = minFitness;
     stats.maxFitnesses[gen] = maxFitness;
     stats.avgFitnesses[gen] = sumFitness / population.size();
+
+    stats.fittestIndividuals[gen] = population[fittestIndex];
+
+    // simple test
+    PrintChromosome(population[fittestIndex].chromosome);
+    auto roomSet = DecodeChromosome(population[fittestIndex].chromosome);
+    PrintRoomSet(roomSet);
+    DrawRoomSet(roomSet);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 void OutputStatistics(Statistics& stats, std::ostream& outStream)
@@ -375,32 +389,6 @@ void InitializeIndividual(std::mt19937& generator, Individual& x)
         }
     } while (!DoesRoomFitConstraints(roomSet[6]));
 
-    // i don't currently care about position,
-    // so we can initialize them all randomly in one go
-    // for (int i = 0; i < NUM_ROOMS; i++)
-    // {
-    //     bool didCollide;
-    //     // keep attempting to generate rooms until none of them collide
-    //     do
-    //     {
-    //         didCollide = false;
-    //         Range<float> xRange(0.0f, 102.3f - roomSet[i].length);
-    //         Range<float> yRange(0.0f, 102.3f - roomSet[i].width);
-    //         roomSet[i].x = GenerateFloatInRange(generator, xRange);
-    //         roomSet[i].y = GenerateFloatInRange(generator, yRange);
-
-    //         // should not execute for i = 0
-    //         for (int j = 0; j < i; j++)
-    //         {
-    //             if (DoRoomsCollide(roomSet[j], roomSet[i]))
-    //             {
-    //                 didCollide = true;
-    //                 break;
-    //             }
-    //         }
-    //     } while (didCollide);
-    // }
-
     // we actually don't care about position at all
     // so let's just generate one randomly and call it a day
     // (because I don't want to re-write my encoders/decoders)
@@ -411,10 +399,6 @@ void InitializeIndividual(std::mt19937& generator, Individual& x)
     }
 
     x.chromosome = EncodeChromosome(roomSet);
-    DrawRoomSet(roomSet);
-    PrintRoomSet(roomSet);
-    PrintChromosome(x.chromosome);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 void DrawRoomSet(RoomSet& roomSet)
@@ -439,6 +423,7 @@ void DrawRoomSet(RoomSet& roomSet)
     // which is 200px at a precision of 0.1f
     constexpr int squareLength = 200;
     constexpr int paddingPixels = 10;
+    constexpr int checkerSize = 5;
 
     // image will be a 4x2 grid of squares used to visualize room areas
     constexpr int imageLength = (5 * paddingPixels) + (4 * squareLength);
@@ -490,8 +475,10 @@ void DrawRoomSet(RoomSet& roomSet)
         const int length = static_cast<int>(room.length * 10.0f);
         const int width = static_cast<int>(room.width * 10.0f);
 
-        const int xMax = roomOffsetX[i] + length;
-        const int yMax = roomOffsetY[i] + width;
+        int xMax = roomOffsetX[i] + length;
+        xMax = xMax < imageLength ? xMax : imageLength;
+        int yMax = roomOffsetY[i] + width;
+        yMax = yMax < imageWidth ? yMax : imageWidth;
 
         // fill the frame with the room's dimensions
         for (int x = roomOffsetX[i]; x < xMax; x++)
@@ -506,40 +493,28 @@ void DrawRoomSet(RoomSet& roomSet)
                 }
                 else
                 {
-                    image(x, y, 0, 0) = invalidColor[0];
-                    image(x, y, 0, 1) = invalidColor[1];
-                    image(x, y, 0, 2) = invalidColor[2];
+                    // if the room is invalid, draw it as a checkered gray box
+                    // i.e. we only draw the top right and bottom left quarters
+                    // of a (2 * checkerSize) square
+                    const int xMod = x % (2 * checkerSize);
+                    const int yMod = y % (2 * checkerSize);
+
+                    // remember, CImg uses y=0 at the top of the image
+                    const bool upperRight = (xMod >= checkerSize && yMod < checkerSize);
+                    const bool bottomLeft = (xMod < checkerSize && yMod >= checkerSize);
+
+                    if (upperRight || bottomLeft)
+                    {
+                        image(x, y, 0, 0) = invalidColor[0];
+                        image(x, y, 0, 1) = invalidColor[1];
+                        image(x, y, 0, 2) = invalidColor[2];
+                    }
                 }
             }
         }
     }
     image.save_png("out.png");
 }
-
-// float GetFitness(RoomSet& rooms)
-// {
-//     // if at least one constraint is not met,
-//     // the entire chromosome is invalid and should have close to zero fitness
-//     // (we can't use pure zero because of the way the CDF is calculated)
-//     constexpr float invalidFitness = 0.0f;
-
-//     bool doesFit = true;
-//     for (Room& room : rooms)
-//     {
-//         if (!DoesRoomFitConstraints(room))
-//         {
-//             // std::cout << "Objective: Invalid\n";
-//             // std::cout << "Fitness..: " << invalidFitness << "\n";
-//             return invalidFitness;
-//         }
-//     }
-
-//     float objective = doesFit ? ObjectiveFunction(rooms) : 0.0f;
-//     // std::cout << "Objective: " << objective << "\n";
-//     float fitness = ObjectiveToFitness(objective);
-//     // std::cout << "Fitness..: " << fitness << "\n";
-//     return fitness;
-// }
 
 EvaluationResult EvaluateIndividual(RoomSet& rooms)
 {
@@ -568,8 +543,7 @@ ProbDist MakeCumulativeProbDist(Population& pop)
     double totalFitness = 0.0;
     for (Individual& indiv : pop)
         totalFitness += indiv.fitness;
-    // std::cout << "Total fitness: " << totalFitness << "\n";
-    ProbDist cumulativeProbs;  // need
+    ProbDist cumulativeProbs;
 
     // if the total fitness is 0, the entire probability distribution will be 0s
     // to prevent this, we instead return a uniform CDF.
@@ -584,36 +558,21 @@ ProbDist MakeCumulativeProbDist(Population& pop)
         return cumulativeProbs;
     }
 
-    ProbDist fitnessProportions;  // for bookkeeping only
-    ProbDist expectedValues;      // for bookkeeping only
+    // ProbDist fitnessProportions;  // for debugging
+    // ProbDist expectedValues;      // for debugging
     double accumulator = 0.0;
 
     for (int i = 0; i < GENERATION_SIZE; i++)
     {
-        double fitnessProportion = pop[i].fitness / totalFitness;
-        fitnessProportions[i] = fitnessProportion;
-
+        const double fitnessProportion = pop[i].fitness / totalFitness;
         accumulator += fitnessProportion;
         cumulativeProbs[i] = accumulator;
 
-        double expectedValue = fitnessProportion * GENERATION_SIZE;
-        expectedValues[i] = expectedValue;
+        // for debugging
+        //double expectedValue = fitnessProportion * GENERATION_SIZE;
+        //expectedValues[i] = expectedValue;
+        //fitnessProportions[i] = fitnessProportion;
     }
-
-    // for (int i = 0; i < GENERATION_SIZE; i++)
-    // {
-    //     for (auto val : pop[i].GetFirstDouble())
-    //         std::cout << (int)val;
-    //     std::cout << " | ";
-    //     for (auto val : pop[i].GetSecondDouble())
-    //         std::cout << (int)val;
-    //     std::cout << " | Fitness: " << pop[i].fitness << " => Proportion: ";
-    //     std::cout << fitnessProportions[i] << " => Expected parents: ";
-    //     std::cout << expectedValues[i] << " => Rounded: ";
-    //     int exptectedInt = static_cast<int>(std::round(expectedValues[i]));
-    //     std::cout << exptectedInt << " |\tCumulative prob: ";
-    //     std::cout << cumulativeProbs[i] << "\n";
-    // }
 
     return cumulativeProbs;
 }
