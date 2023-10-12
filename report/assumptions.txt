@@ -1,16 +1,9 @@
 Any proportion = [1..1.5]
-Rooms must fit inside an outer rectangle
 Float values are restricted to [0, 102.3]
     bitstring len = 10
-The room is laid out on a xy grid with a stride of 0.1 in both the x and y directions
 Rooms only require the following information
-    length, width, xpos, ypos
-    (xpos, ypos) is the bottom coordinates left of the room
-Rooms must not overlap
-    AABB method
-Rooms must be adjacent
-    no idea how to specify this yet ngl
-if a constraint is not met, that translates to 0 fitness
-Initialization of the chromosome is random EXCEPT that we specify 5.5 len and 8.5 width for the bathroom every time
+    length, width
+if a constraint is not met, that translates to an objective function value of the maximum possible area
+Initialization of the chromosome is random EXCEPT that we ensure each initial chromosome is valid
     this saves us some search time, theoretically
 a roomset is {Living, Kitchen, Bath, Hall, Bed1, Bed2, Bed3}
