@@ -1,0 +1,12 @@
+constexpr int NUM_GENERATIONS = 250;
+constexpr int GENERATION_SIZE = 100;
+constexpr double CROSSOVER_PROB = 0.7;
+constexpr double MUTATION_PROB = 0.1;
+
+what about massively increasing the mutation chance?
+i think this might be the better approach:
+    crossover really messes up the length and width values, but mutation can perturb them more subtly
+    at least if my thinking is correct
+
+    ... i could not have been more wrong lol
+    

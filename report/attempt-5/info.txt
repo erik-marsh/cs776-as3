@@ -1,0 +1,9 @@
+constexpr int NUM_GENERATIONS = 250;
+constexpr int GENERATION_SIZE = 100;
+constexpr double CROSSOVER_PROB = 0.3;
+constexpr double MUTATION_PROB = 0.001;
+
+let's MAJORLY bump down the crossover probability
+    crossover tends to really kill off a good specimen from what i've seen
+    it really doesn't do much of anything
+    it may have even hurt performance a little bit!

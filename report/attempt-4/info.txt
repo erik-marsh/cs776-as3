@@ -1,0 +1,10 @@
+constexpr int NUM_GENERATIONS = 750;
+constexpr int GENERATION_SIZE = 300;
+constexpr double CROSSOVER_PROB = 0.7;
+constexpr double MUTATION_PROB = 0.001;
+
+what if we increase the population size a whole bunch?
+    i was banking on the hypothesis: "if our initial guesses are better, then we're more likely to get a better result"
+    i did get better results, but not by much
+        actually, the maxes and averages are noticably higher
+    and things still plateau at around generation 50

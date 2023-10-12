@@ -1,0 +1,9 @@
+constexpr int NUM_GENERATIONS = 500;
+constexpr int GENERATION_SIZE = 100;
+constexpr double CROSSOVER_PROB = 0.7;
+constexpr double MUTATION_PROB = 0.001;
+
+i wanted to see how an even higher number of generations affected the results
+i was noticing a fall-off as generations increased past like 50
+
+and it seems i am correct!

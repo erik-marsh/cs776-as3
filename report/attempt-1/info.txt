@@ -1,0 +1,4 @@
+constexpr int NUM_GENERATIONS = 50;
+constexpr int GENERATION_SIZE = 100;
+constexpr double CROSSOVER_PROB = 0.7;
+constexpr double MUTATION_PROB = 0.001;

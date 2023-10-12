@@ -1,0 +1,7 @@
+constexpr int NUM_GENERATIONS = 250;
+constexpr int GENERATION_SIZE = 100;
+constexpr double CROSSOVER_PROB = 0.7;
+constexpr double MUTATION_PROB = 0.001;
+
+upped NUM_GENERATIONS from 50 -> 250
+    this now follows the 2x rule of thumb or whatever it was
