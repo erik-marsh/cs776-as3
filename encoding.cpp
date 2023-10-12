@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <iomanip>
 
 // The float encoder transforms a value in the range [0, 102.3]
 // into a bitsting of width 10.
@@ -104,15 +105,14 @@ float ObjectiveToFitness(float objectiveValue)
     return ((maxCost - objectiveValue) / range) * 100.0f;
 }
 
-void PrintChromosome(Chromosome& chromosome)
+void PrintChromosome(Chromosome& chromosome, std::ostream& stream)
 {
     static constexpr std::array<RoomType, NUM_ROOMS> roomTypes = {
         RoomType::LIVING, RoomType::KITCHEN, RoomType::BATH, RoomType::HALL,
         RoomType::BED1,   RoomType::BED2,    RoomType::BED3};
 
-    std::printf("            %-10s | %-10s | %-10s | %-10s | %s\n", "Length", "Width", "x Pos",
-                "y Pos", "Type");
-    std::printf("Chromosome: ");
+    stream << "            Length     | Width      | x Pos      | y Pos      | Type\n";
+    stream << "Chromosome: ";
     for (int i = 0; i < NUM_ROOMS; i++)
     {
         for (int j = 0; j < 4; j++)
@@ -120,52 +120,55 @@ void PrintChromosome(Chromosome& chromosome)
             for (int k = 0; k < FLOAT_BITWIDTH; k++)
             {
                 int index = (i * ROOM_BITWIDTH) + (j * FLOAT_BITWIDTH) + k;
-                std::printf("%d", static_cast<int>(chromosome[index]));
+                stream << static_cast<int>(chromosome[index]);
             }
-            std::printf(" | ");
+            stream << " | ";
         }
-        std::printf("%s\n", RoomTypeToString(roomTypes[i]).data());
+        stream << RoomTypeToString(roomTypes[i]) << "\n";
 
-        if (i != NUM_ROOMS - 1) std::printf("            ");
+        if (i != NUM_ROOMS - 1) stream << "            ";
     }
 }
 
-void PrintRoomSet(RoomSet& rooms)
+void PrintRoomSet(RoomSet& rooms, std::ostream& stream)
 {
-    static constexpr std::string_view redText = "\033[91m";
-    static constexpr std::string_view defaultText = "\033[39m";
-    static constexpr std::string_view resetText = "\033[0m";
+    constexpr char invalidMarker = '~';
 
-    std::printf("            %-10s | %-10s | %-10s | %-10s | %-12s | %-10s | %-10s | %s\n",
-                "Length", "Width", "x Pos", "y Pos", "Area", "PropLW", "PropWL", "Type");
-    std::printf("RoomSet...: ");
+    stream << "            Length     | Width      | x Pos      | y Pos      | Area         | "
+           << "PropLW     | PropWL     | Type\n";
+    stream << "RoomSet...: ";
     for (int i = 0; i < NUM_ROOMS; i++)
     {
         Room& room = rooms[i];
         RoomValidity validity = DoesRoomFitContraintsDiganostic(room);
 
         const float area = room.length * room.width;
-        const float proportionLW =
-            room.length / room.width;  // TODO: must not allow a room to be generated with 0 width
-                                       // or length to prevent a division by 0
-        const float proportionWL = room.width / room.length;
+        const float proportionLW = room.width > 0.0f ? room.length / room.width : 0.0f;
+        const float proportionWL = room.length > 0.0f ? room.width / room.length : 0.0f;
 
-        std::printf("%s%10.6f%s | ", (validity.lengthMet ? defaultText.data() : redText.data()),
-                    room.length, resetText.data());
-        std::printf("%s%10.6f%s | ", (validity.widthMet ? defaultText.data() : redText.data()),
-                    room.width, resetText.data());
-        std::printf("%s%10.6f%s | ", (validity.xMet ? defaultText.data() : redText.data()), room.x,
-                    resetText.data());  // vestigial, kept so encodings don't screw up
-        std::printf("%s%10.6f%s | ", (validity.yMet ? defaultText.data() : redText.data()), room.y,
-                    resetText.data());  // vestigial, kept so encodings don't screw up
-        std::printf("%s%12.6f%s | ", (validity.areaMet ? defaultText.data() : redText.data()), area,
-                    resetText.data());
-        std::printf("%s%10.6f%s | ", (validity.proportionMet ? defaultText.data() : redText.data()),
-                    proportionLW, resetText.data());
-        std::printf("%s%10.6f%s | ", (validity.proportionMet ? defaultText.data() : redText.data()),
-                    proportionWL, resetText.data());
-        std::printf("%s\n", RoomTypeToString(room.type).data());
+        char marker = (validity.lengthMet ? ' ' : invalidMarker);
+        stream << marker << std::setfill(marker) << std::fixed << std::setw(9)
+               << std::setprecision(6) << room.length << marker << '|';
+        marker = (validity.widthMet ? ' ' : invalidMarker);
+        stream << marker << std::setfill(marker) << std::fixed << std::setw(10)
+               << std::setprecision(6) << room.width << marker << '|';
+        marker = (validity.xMet ? ' ' : invalidMarker);
+        stream << marker << std::setfill(marker) << std::fixed << std::setw(10)
+               << std::setprecision(6) << room.x << marker << '|';  // vestigial
+        marker = (validity.yMet ? ' ' : invalidMarker);
+        stream << marker << std::setfill(marker) << std::fixed << std::setw(10)
+               << std::setprecision(6) << room.y << marker << '|';  // vestigial
+        marker = (validity.areaMet ? ' ' : invalidMarker);
+        stream << marker << std::setfill(marker) << std::fixed << std::setw(12)
+               << std::setprecision(6) << area << marker << '|';
+        marker = (validity.proportionMet ? ' ' : invalidMarker);
+        stream << marker << std::setfill(marker) << std::fixed << std::setw(10)
+               << std::setprecision(6) << proportionLW << marker << '|';
+        marker = (validity.proportionMet ? ' ' : invalidMarker);
+        stream << marker << std::setfill(marker) << std::fixed << std::setw(10)
+               << std::setprecision(6) << proportionWL << marker << '|';
+        stream << ' ' << RoomTypeToString(room.type) << "\n";
 
-        if (i != NUM_ROOMS - 1) std::printf("            ");
+        if (i != NUM_ROOMS - 1) stream << "            ";
     }
 }

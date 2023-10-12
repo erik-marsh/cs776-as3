@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <ostream>
 
 #include "Rooms.hpp"
 
@@ -28,5 +29,5 @@ RoomSet DecodeChromosome(Chromosome& chromosome);
 float ObjectiveFunction(RoomSet& rooms);
 float ObjectiveToFitness(float objectiveValue);
 
-void PrintChromosome(Chromosome& chromosome);
-void PrintRoomSet(RoomSet& rooms);
+void PrintChromosome(Chromosome& chromosome, std::ostream& stream);
+void PrintRoomSet(RoomSet& rooms, std::ostream& stream);

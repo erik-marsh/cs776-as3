@@ -54,10 +54,11 @@ using ProbDist = std::array<double, GENERATION_SIZE>;
 
 Statistics RunGeneticAlgorithm();
 void GenerationStatistics(Statistics& stats, Population& population, int gen);
-void OutputStatistics(Statistics& stats, std::ostream& outStream);
+void OutputStatistics(Statistics& stats, std::ostream& csvSummary, std::ostream& bestText,
+                      const std::string& bestImageFilename);
 float GenerateFloatInRange(std::mt19937& generator, const Range<float> range);
 void InitializeIndividual(std::mt19937& generator, Individual& x);
-void DrawRoomSet(RoomSet& roomSet);
+void DrawRoomSet(RoomSet& roomSet, const std::string& filename);
 // float GetFitness(RoomSet& rooms);
 EvaluationResult EvaluateIndividual(RoomSet& rooms);
 ProbDist MakeCumulativeProbDist(Population& pop);
@@ -79,10 +80,19 @@ int main()
     for (int i = 0; i < NUM_TRIALS; i++)
     {
         Statistics stats = RunGeneticAlgorithm();
-        std::stringstream filename;
-        filename << "data/stats-trial-" << i << ".csv";
-        std::ofstream outFile(filename.str());
-        OutputStatistics(stats, outFile);
+        std::stringstream ss;
+        ss << "data/stats-trial-" << i << ".csv";
+        std::ofstream outFile(ss.str());
+
+        ss.str("");
+        ss << "data/best-trial-" << i << ".txt";
+        std::ofstream bestText(ss.str());
+
+        ss.str("");
+        ss << "data/best-final-gen-trial-" << i << ".png";
+        std::string bestImage = ss.str();
+
+        OutputStatistics(stats, outFile, bestText, bestImage);
         uberStats[i] = stats;
     }
 
@@ -118,7 +128,8 @@ int main()
     }
 
     std::ofstream outFile("data/stats-average.csv");
-    OutputStatistics(uberSummary, outFile);
+    std::ofstream bestText("/dev/null");
+    OutputStatistics(uberSummary, outFile, bestText, "");
 
     return 0;
 }
@@ -235,29 +246,41 @@ void GenerationStatistics(Statistics& stats, Population& population, int gen)
     stats.avgFitnesses[gen] = sumFitness / population.size();
 
     stats.fittestIndividuals[gen] = population[fittestIndex];
-
-    // simple test
-    PrintChromosome(population[fittestIndex].chromosome);
-    auto roomSet = DecodeChromosome(population[fittestIndex].chromosome);
-    PrintRoomSet(roomSet);
-    DrawRoomSet(roomSet);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
-void OutputStatistics(Statistics& stats, std::ostream& outStream)
+void OutputStatistics(Statistics& stats, std::ostream& csvSummary, std::ostream& bestText,
+                      const std::string& bestImageFilename)
 {
     // prints the statistics in a friendly format
     // for consumption by a python script
-    outStream << std::fixed << std::setprecision(6);
-    outStream << "MinFitness,MaxFitness,AvgFitness,MinObjective,MaxObjective,AvgObjective\n";
+    csvSummary << std::fixed << std::setprecision(6);
+    csvSummary << "MinFitness,MaxFitness,AvgFitness,MinObjective,MaxObjective,AvgObjective\n";
     for (int i = 0; i < stats.avgFitnesses.size(); i++)
     {
-        outStream << stats.minFitnesses[i] << ",";
-        outStream << stats.maxFitnesses[i] << ",";
-        outStream << stats.avgFitnesses[i] << ",";
-        outStream << stats.minObjective[i] << ",";
-        outStream << stats.maxObjective[i] << ",";
-        outStream << stats.avgObjective[i] << "\n";
+        csvSummary << stats.minFitnesses[i] << ",";
+        csvSummary << stats.maxFitnesses[i] << ",";
+        csvSummary << stats.avgFitnesses[i] << ",";
+        csvSummary << stats.minObjective[i] << ",";
+        csvSummary << stats.maxObjective[i] << ",";
+        csvSummary << stats.avgObjective[i] << "\n";
+    }
+
+    // print out the best individuals for each generation to a file
+    // and draw out the best individual from the final generation
+    //     TODO: this isn't the best overall one
+    for (int i = 0; i < stats.fittestIndividuals.size(); i++)
+    {
+        auto roomSet = DecodeChromosome(stats.fittestIndividuals[NUM_GENERATIONS].chromosome);
+
+        bestText << "========== BEST INDIVIDUAL OF GENERATION " << i << " ==========\n";
+        bestText << "Seed.....: " << stats.seed << "\n";
+        bestText << "Fitness..: " << stats.fittestIndividuals[NUM_GENERATIONS].fitness << "\n";
+        bestText << "Objective: " << stats.fittestIndividuals[NUM_GENERATIONS].objective << "\n";
+        PrintChromosome(stats.fittestIndividuals[NUM_GENERATIONS].chromosome, bestText);
+        PrintRoomSet(roomSet, bestText);
+        bestText << "\n";
+
+        if (i == stats.fittestIndividuals.size() - 1) DrawRoomSet(roomSet, bestImageFilename);
     }
 }
 
@@ -401,8 +424,10 @@ void InitializeIndividual(std::mt19937& generator, Individual& x)
     x.chromosome = EncodeChromosome(roomSet);
 }
 
-void DrawRoomSet(RoomSet& roomSet)
+void DrawRoomSet(RoomSet& roomSet, const std::string& filename)
 {
+    if (filename == "") return;
+
     constexpr int backgroundColor = 47;  // shades of gray, i.e. R=G=B=backgroundColor
     static constexpr std::array<uint8_t, 3> borderColor{255, 255, 255};
     static constexpr std::array<uint8_t, 3> invalidColor{191, 191, 191};
@@ -513,7 +538,7 @@ void DrawRoomSet(RoomSet& roomSet)
             }
         }
     }
-    image.save_png("out.png");
+    image.save_png(filename.c_str());
 }
 
 EvaluationResult EvaluateIndividual(RoomSet& rooms)
@@ -569,9 +594,9 @@ ProbDist MakeCumulativeProbDist(Population& pop)
         cumulativeProbs[i] = accumulator;
 
         // for debugging
-        //double expectedValue = fitnessProportion * GENERATION_SIZE;
-        //expectedValues[i] = expectedValue;
-        //fitnessProportions[i] = fitnessProportion;
+        // double expectedValue = fitnessProportion * GENERATION_SIZE;
+        // expectedValues[i] = expectedValue;
+        // fitnessProportions[i] = fitnessProportion;
     }
 
     return cumulativeProbs;
