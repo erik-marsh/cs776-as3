@@ -59,7 +59,6 @@ void OutputStatistics(Statistics& stats, std::ostream& csvSummary, std::ostream&
 float GenerateFloatInRange(std::mt19937& generator, const Range<float> range);
 void InitializeIndividual(std::mt19937& generator, Individual& x);
 void DrawRoomSet(RoomSet& roomSet, const std::string& filename);
-// float GetFitness(RoomSet& rooms);
 EvaluationResult EvaluateIndividual(RoomSet& rooms);
 ProbDist MakeCumulativeProbDist(Population& pop);
 std::array<Individual, 2> Select(std::mt19937& generator, ProbDist& cdf, Population& pop);
@@ -150,13 +149,7 @@ Statistics RunGeneticAlgorithm()
     {
         Individual& individual = population[i];
         InitializeIndividual(generator, individual);
-        // std::cout << "\n\n==================== INDIVIDUAL " << i << "====================\n";
-        // PrintChromosome(individual.chromosome);
         auto roomSet = DecodeChromosome(individual.chromosome);
-        // PrintRoomSet(roomset);
-
-        // individual.objective = ObjectiveFunction(roomSet);
-        // individual.fitness = GetFitness(roomSet);
         auto result = EvaluateIndividual(roomSet);
         individual.objective = result.objective;
         individual.fitness = result.fitness;
@@ -171,32 +164,16 @@ Statistics RunGeneticAlgorithm()
 
         for (int i = 0; i < GENERATION_SIZE; i += 2)
         {
-            // std::cout << "\nSelecting...\n";
             auto parents = Select(generator, cdf, population);
-            // for (auto& p : parents)
-            // {
-            //     std::cout << "     Selected ";
-            //     for (auto val : p.chromosome)
-            //         std::cout << (int)val;
-            //     std::cout << " (Fitness=" << p.fitness << ")\n";
-            // }
 
             // mutation occurs within the Crossover function
-            // std::cout << "Reproducing...\n";
             auto children = Crossover(generator, parents);
             for (auto& c : children)
             {
                 auto roomSet = DecodeChromosome(c.chromosome);
-                // c.objective = ObjectiveFunction(roomSet);
-                // c.fitness = GetFitness(roomSet);
                 auto result = EvaluateIndividual(roomSet);
                 c.objective = result.objective;
                 c.fitness = result.fitness;
-
-                // std::cout << "    Got child ";
-                // for (auto val : c.chromosome)
-                //     std::cout << (int)val;
-                // std::cout << " (Fitness=" << c.fitness << ")\n";
             }
 
             newGeneration[i] = children[0];
@@ -633,7 +610,6 @@ std::array<Individual, 2> Crossover(std::mt19937& generator, std::array<Individu
     {
         std::uniform_int_distribution<int> distInt(0, CHROMOSOME_BITWIDTH - 1);
         int crossoverIndex = distInt(generator);
-        // std::cout << "Crossover occured! (Index=" << crossoverIndex << ")\n";
 
         for (int i = 0; i < crossoverIndex; i++)
         {
@@ -663,9 +639,6 @@ uint8_t MutateBit(std::mt19937& generator, uint8_t bit)
     std::uniform_real_distribution<double> dist(0.0, 1.0);
     double prob = dist(generator);
     if (prob <= MUTATION_PROB)
-    {
-        // std::cout << "Mutation occured!\n";
         return !bit;
-    }
     return bit;
 }
