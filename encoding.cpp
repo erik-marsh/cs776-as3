@@ -22,7 +22,7 @@ Gene EncodeFloat(float val)
     return ret;
 }
 
-Chromosome EncodeChromosome(RoomSet& rooms)
+Chromosome EncodeChromosome(const RoomSet& rooms)
 {
     Chromosome ret;
 
@@ -43,7 +43,7 @@ Chromosome EncodeChromosome(RoomSet& rooms)
     return ret;
 }
 
-float DecodeFloat(Gene& bitstring)
+float DecodeFloat(const Gene& bitstring)
 {
     int ival = 0;
     for (int i = 0; i < bitstring.size(); i++)
@@ -52,7 +52,7 @@ float DecodeFloat(Gene& bitstring)
     return val;
 }
 
-RoomSet DecodeChromosome(Chromosome& chromosome)
+RoomSet DecodeChromosome(const Chromosome& chromosome)
 {
     static constexpr std::array<RoomType, NUM_ROOMS> roomTypes = {
         RoomType::LIVING, RoomType::KITCHEN, RoomType::BATH, RoomType::HALL,
@@ -86,10 +86,10 @@ RoomSet DecodeChromosome(Chromosome& chromosome)
 
 // This function assumes that all the rooms are valid beforehand.
 // (i.e. DoesRoomFitConstraints returns true for all rooms.)
-float ObjectiveFunction(RoomSet& rooms)
+float ObjectiveFunction(const RoomSet& rooms)
 {
     float ret = 0.0f;
-    for (Room& room : rooms)
+    for (const Room& room : rooms)
         ret += RoomCost(room);
     return ret;
 }
@@ -105,7 +105,7 @@ float ObjectiveToFitness(float objectiveValue)
     return ((maxCost - objectiveValue) / range) * 100.0f;
 }
 
-void PrintChromosome(Chromosome& chromosome, std::ostream& stream)
+void PrintChromosome(const Chromosome& chromosome, std::ostream& stream)
 {
     static constexpr std::array<RoomType, NUM_ROOMS> roomTypes = {
         RoomType::LIVING, RoomType::KITCHEN, RoomType::BATH, RoomType::HALL,
@@ -130,7 +130,7 @@ void PrintChromosome(Chromosome& chromosome, std::ostream& stream)
     }
 }
 
-void PrintRoomSet(RoomSet& rooms, std::ostream& stream)
+void PrintRoomSet(const RoomSet& rooms, std::ostream& stream)
 {
     constexpr char invalidMarker = '~';
 
@@ -139,7 +139,7 @@ void PrintRoomSet(RoomSet& rooms, std::ostream& stream)
     stream << "RoomSet...: ";
     for (int i = 0; i < NUM_ROOMS; i++)
     {
-        Room& room = rooms[i];
+        const Room& room = rooms[i];
         RoomValidity validity = DoesRoomFitContraintsDiganostic(room);
 
         const float area = room.length * room.width;

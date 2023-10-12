@@ -22,13 +22,13 @@ using Gene = std::array<uint8_t, FLOAT_BITWIDTH>;
 using Chromosome = std::array<uint8_t, CHROMOSOME_BITWIDTH>;
 
 Gene EncodeFloat(float val);
-Chromosome EncodeChromosome(RoomSet& rooms);
+Chromosome EncodeChromosome(const RoomSet& rooms);
 
-float DecodeFloat(Gene& bitstring);
-RoomSet DecodeChromosome(Chromosome& chromosome);
+float DecodeFloat(const Gene& bitstring);
+RoomSet DecodeChromosome(const Chromosome& chromosome);
 
-float ObjectiveFunction(RoomSet& rooms);
+float ObjectiveFunction(const RoomSet& rooms);
 float ObjectiveToFitness(float objectiveValue);
 
-void PrintChromosome(Chromosome& chromosome, std::ostream& stream);
-void PrintRoomSet(RoomSet& rooms, std::ostream& stream);
+void PrintChromosome(const Chromosome& chromosome, std::ostream& stream);
+void PrintRoomSet(const RoomSet& rooms, std::ostream& stream);

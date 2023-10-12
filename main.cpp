@@ -53,16 +53,16 @@ using Population = std::array<Individual, GENERATION_SIZE>;
 using ProbDist = std::array<double, GENERATION_SIZE>;
 
 Statistics RunGeneticAlgorithm();
-void GenerationStatistics(Statistics& stats, Population& population, int gen);
-void OutputStatistics(Statistics& stats, std::ostream& csvSummary, std::ostream& bestText,
+void GenerationStatistics(Statistics& stats, const Population& population, int gen);
+void OutputStatistics(const Statistics& stats, std::ostream& csvSummary, std::ostream& bestText,
                       const std::string& bestImageFilename);
 float GenerateFloatInRange(std::mt19937& generator, const Range<float> range);
 void InitializeIndividual(std::mt19937& generator, Individual& x);
-void DrawRoomSet(RoomSet& roomSet, const std::string& filename);
-EvaluationResult EvaluateIndividual(RoomSet& rooms);
-ProbDist MakeCumulativeProbDist(Population& pop);
-std::array<Individual, 2> Select(std::mt19937& generator, ProbDist& cdf, Population& pop);
-std::array<Individual, 2> Crossover(std::mt19937& generator, std::array<Individual, 2>& parents);
+void DrawRoomSet(const RoomSet& roomSet, const std::string& filename);
+EvaluationResult EvaluateIndividual(const RoomSet& rooms);
+ProbDist MakeCumulativeProbDist(const Population& pop);
+std::array<Individual, 2> Select(std::mt19937& generator, const ProbDist& cdf, const Population& pop);
+std::array<Individual, 2> Crossover(std::mt19937& generator, const std::array<Individual, 2>& parents);
 uint8_t MutateBit(std::mt19937& generator, uint8_t bit);
 
 // TODO: do the reliability, quality, speed metrics thing
@@ -88,7 +88,7 @@ int main()
         std::ofstream bestText(ss.str());
 
         ss.str("");
-        ss << "data/best-final-gen-trial-" << i << ".png";
+        ss << "data/best-trial-" << i << ".png";
         std::string bestImage = ss.str();
 
         OutputStatistics(stats, outFile, bestText, bestImage);
@@ -106,7 +106,7 @@ int main()
         float sumMaxFitness = 0.0f;
         float sumAvgFitness = 0.0f;
 
-        for (Statistics& stats : uberStats)
+        for (const Statistics& stats : uberStats)
         {
             sumMinObjective += stats.minObjective[i];
             sumMaxObjective += stats.maxObjective[i];
@@ -129,6 +129,37 @@ int main()
     std::ofstream outFile("data/stats-average.csv");
     std::ofstream bestText("/dev/null");
     OutputStatistics(uberSummary, outFile, bestText, "");
+
+    // find the fittest overall individual across all trials
+    int fittestTrial = 0;
+    int fittestGeneration = 0;
+    float maxFitness = std::numeric_limits<float>::lowest();
+    for (int i = 0; i < uberStats.size(); i++)
+    {
+        for (int j = 0; j < uberStats[i].fittestIndividuals.size(); j++)
+        {
+            const Individual& individual = uberStats[i].fittestIndividuals[j];
+            if (individual.fitness > maxFitness)
+            {
+                maxFitness = individual.fitness;
+                fittestTrial = i;
+                fittestGeneration = j;
+            }
+        }
+    }
+
+    std::ofstream bestOverall("data/best-overall.txt");
+    const Individual& bestOverallIndividual = uberStats[fittestTrial].fittestIndividuals[fittestGeneration];
+    bestOverall << std::fixed << std::setprecision(6);
+    bestOverall << "========== FITTEST INDIVIDUAL ACROSS ALL TRIALS ==========\n";
+    bestOverall << "Trial.....: " << fittestTrial << "\n";
+    bestOverall << "Generation: " << fittestGeneration << "\n";
+    bestOverall << "Fitness...: " << maxFitness << "\n";
+    bestOverall << "Objective.: " << bestOverallIndividual.objective << "\n";
+    PrintChromosome(bestOverallIndividual.chromosome, bestOverall);
+    auto bestOverallRoomSet = DecodeChromosome(bestOverallIndividual.chromosome);
+    PrintRoomSet(bestOverallRoomSet, bestOverall);
+    DrawRoomSet(bestOverallRoomSet, "data/best-overall.png");
 
     return 0;
 }
@@ -187,7 +218,7 @@ Statistics RunGeneticAlgorithm()
     return stats;
 }
 
-void GenerationStatistics(Statistics& stats, Population& population, int gen)
+void GenerationStatistics(Statistics& stats, const Population& population, int gen)
 {
     double minFitness = std::numeric_limits<double>::max();
     double maxFitness = std::numeric_limits<double>::lowest();
@@ -225,7 +256,7 @@ void GenerationStatistics(Statistics& stats, Population& population, int gen)
     stats.fittestIndividuals[gen] = population[fittestIndex];
 }
 
-void OutputStatistics(Statistics& stats, std::ostream& csvSummary, std::ostream& bestText,
+void OutputStatistics(const Statistics& stats, std::ostream& csvSummary, std::ostream& bestText,
                       const std::string& bestImageFilename)
 {
     // prints the statistics in a friendly format
@@ -242,23 +273,44 @@ void OutputStatistics(Statistics& stats, std::ostream& csvSummary, std::ostream&
         csvSummary << stats.avgObjective[i] << "\n";
     }
 
+    // find the best individual across all generations
+    int fittestOverallIndex = 0;
+    float maxFitness = std::numeric_limits<float>::lowest();
+    for (int i = 0; i < stats.fittestIndividuals.size(); i++)
+    {
+        const Individual& individual = stats.fittestIndividuals[i];
+        if (individual.fitness > maxFitness)
+        {
+            maxFitness = individual.fitness;
+            fittestOverallIndex = i;
+        }
+    }
+
     // print out the best individuals for each generation to a file
     // and draw out the best individual from the final generation
     //     TODO: this isn't the best overall one
+    bestText << "==============================================================\n";
+    bestText << "========== SEED FOR THIS TRIAL: " << stats.seed << "\n";
+    bestText << "==============================================================\n\n";
+    
     for (int i = 0; i < stats.fittestIndividuals.size(); i++)
     {
-        auto roomSet = DecodeChromosome(stats.fittestIndividuals[NUM_GENERATIONS].chromosome);
+        const Individual& individual = stats.fittestIndividuals[i];
+        auto roomSet = DecodeChromosome(individual.chromosome);
 
+        bestText << std::fixed << std::setprecision(6);
         bestText << "========== BEST INDIVIDUAL OF GENERATION " << i << " ==========\n";
-        bestText << "Seed.....: " << stats.seed << "\n";
-        bestText << "Fitness..: " << stats.fittestIndividuals[NUM_GENERATIONS].fitness << "\n";
-        bestText << "Objective: " << stats.fittestIndividuals[NUM_GENERATIONS].objective << "\n";
-        PrintChromosome(stats.fittestIndividuals[NUM_GENERATIONS].chromosome, bestText);
+        bestText << "Fitness..: " << individual.fitness << "\n";
+        bestText << "Objective: " << individual.objective << "\n";
+        PrintChromosome(individual.chromosome, bestText);
         PrintRoomSet(roomSet, bestText);
         bestText << "\n";
 
-        if (i == stats.fittestIndividuals.size() - 1) DrawRoomSet(roomSet, bestImageFilename);
+        if (i == fittestOverallIndex) DrawRoomSet(roomSet, bestImageFilename);
     }
+
+    bestText << "The fittest individual across all generations occurred in generation "
+             << fittestOverallIndex << "\n";
 }
 
 float GenerateFloatInRange(std::mt19937& generator, const Range<float> range)
@@ -401,7 +453,7 @@ void InitializeIndividual(std::mt19937& generator, Individual& x)
     x.chromosome = EncodeChromosome(roomSet);
 }
 
-void DrawRoomSet(RoomSet& roomSet, const std::string& filename)
+void DrawRoomSet(const RoomSet& roomSet, const std::string& filename)
 {
     if (filename == "") return;
 
@@ -449,7 +501,7 @@ void DrawRoomSet(RoomSet& roomSet, const std::string& filename)
     cimg_library::CImg<uint8_t> image(imageLength, imageWidth, 1, 3, backgroundColor);
     for (int i = 0; i < NUM_ROOMS; i++)
     {
-        Room& room = roomSet[i];
+        const Room& room = roomSet[i];
 
         // draw the frames that the rooms will inhabit
         for (int x = roomOffsetX[i]; x < roomOffsetX[i] + squareLength; x++)
@@ -518,7 +570,7 @@ void DrawRoomSet(RoomSet& roomSet, const std::string& filename)
     image.save_png(filename.c_str());
 }
 
-EvaluationResult EvaluateIndividual(RoomSet& rooms)
+EvaluationResult EvaluateIndividual(const RoomSet& rooms)
 {
     // a further modification is needed here
     // invalid rooms should be assessed on an individual basis
@@ -529,7 +581,7 @@ EvaluationResult EvaluateIndividual(RoomSet& rooms)
     float objective = 0.0f;
     for (int i = 0; i < NUM_ROOMS; i++)
     {
-        Room& room = rooms[i];
+        const Room& room = rooms[i];
         objective += DoesRoomFitConstraints(room) ? RoomCost(room) : INVALID_OBJECTIVE[i];
     }
     float fitness = ObjectiveToFitness(objective);
@@ -540,10 +592,10 @@ EvaluationResult EvaluateIndividual(RoomSet& rooms)
     return ret;
 }
 
-ProbDist MakeCumulativeProbDist(Population& pop)
+ProbDist MakeCumulativeProbDist(const Population& pop)
 {
     double totalFitness = 0.0;
-    for (Individual& indiv : pop)
+    for (const Individual& indiv : pop)
         totalFitness += indiv.fitness;
     ProbDist cumulativeProbs;
 
@@ -579,7 +631,7 @@ ProbDist MakeCumulativeProbDist(Population& pop)
     return cumulativeProbs;
 }
 
-std::array<Individual, 2> Select(std::mt19937& generator, ProbDist& cdf, Population& pop)
+std::array<Individual, 2> Select(std::mt19937& generator, const ProbDist& cdf, const Population& pop)
 {
     std::array<Individual, 2> parents;
     std::uniform_real_distribution<double> dist(0.0, 1.0);
@@ -600,7 +652,7 @@ std::array<Individual, 2> Select(std::mt19937& generator, ProbDist& cdf, Populat
     return parents;
 }
 
-std::array<Individual, 2> Crossover(std::mt19937& generator, std::array<Individual, 2>& parents)
+std::array<Individual, 2> Crossover(std::mt19937& generator, const std::array<Individual, 2>& parents)
 {
     std::array<Individual, 2> children;
     std::uniform_real_distribution<double> dist(0.0, 1.0);
@@ -638,7 +690,6 @@ uint8_t MutateBit(std::mt19937& generator, uint8_t bit)
 {
     std::uniform_real_distribution<double> dist(0.0, 1.0);
     double prob = dist(generator);
-    if (prob <= MUTATION_PROB)
-        return !bit;
+    if (prob <= MUTATION_PROB) return !bit;
     return bit;
 }
