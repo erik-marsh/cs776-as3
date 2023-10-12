@@ -1,0 +1,366 @@
+\documentclass[12pt, letterpaper]{article}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{graphicx}
+%\usepackage{multirow}
+\PassOptionsToPackage{hyphens}{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{indentfirst}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{minted}
+\usepackage{hyperref}
+\usepackage{tablefootnote}
+
+\graphicspath{{./}}
+
+\newcommand\blfootnote[1]{%
+  \begingroup
+  \renewcommand\thefootnote{}\footnote{#1}%
+  \addtocounter{footnote}{-1}%
+  \endgroup
+}
+
+\begin{document}
+
+\noindent
+Erik Marsh
+
+\noindent
+erik.i.marsh@gmail.com
+
+\noindent
+CS776 -- Assignment 3
+
+\noindent
+October 12, 2023
+
+%\tableofcontents
+
+\blfootnote{Code for this assignment can be found at \href{https://github.com/erik-marsh/cs776-as3}{https://github.com/erik-marsh/cs776-as3}.}
+
+\section{Assumptions}
+
+\begin{enumerate}
+    \item When the problem specifies a room proportion as ``Any,''
+          it will be interpreted as the range $[1, 1.5]$.
+    \item Rooms do not have to be positioned in any sort of way.
+          The program will simply try to minimize the sum of the costs of each room independently.
+    \item Rooms will be defined as a tuple of length, width, and room type.
+    \item Room types are as follows: $\{\text{Living, Kitchen, Bath, Hall, Bed1, Bed2, Bed3}\}$.
+    \item Chromosomes will be defined as a tuple of rooms (in the exact order of room types as stated above).
+    \item Since we can reliably compute maxima and minima for the objective function,
+          we can easily define a fitness function that we can maximize.
+          The fitness function will be a value in the range $[0, 100]$.
+    \item If a room's constraint (length, width, area, or proportion) is not met,
+          the cost of the room is set to its maximum possible value.
+    \item Proportion can be defined as either $\frac{length}{width}$ or $\frac{width}{length}$.
+          Due to this, whichever value is $\geq 1$ is interpreted as the room's proportion.
+    \item To save on search time, all chromosomes are initialized with valid (but still random) values.
+\end{enumerate}
+
+\vspace{2in}
+\pagebreak
+\section{Encoding and Decoding Algorithms}
+
+The chromosome layout I was using consists of seven rooms in the following order:
+\[\text{Living, Kitchen, Bath, Hall, Bed1, Bed2, Bed3}\]
+Each room consists of four floating point values: length, width, x position, and y position\footnote{
+    The x and y positions are not actually used for anything.
+    I had planned on using them to place the rooms on a grid and enforce constraints on the floor plan of the apartment,
+    but that proved to be \textit{very} difficult.
+    By the time I realized this, I was already late on this assignment
+    and didn't want to re-write my encoding functions.
+}.
+Every floating point value is encoded as a bitstring of length 10.
+To cleanly map onto this bitstring, we restrict floating point values to the range $[0, 102.3]$\footnote{
+    I could have used a smaller range (maybe $[0, 25.5]$),
+    but if I wanted to place rooms on a grid, I would need a lot more room for the x and y positions.
+} with a precision of $0.1$.
+The chromosome ends up being a bitstring of length $7 * (4 * 10) = 280$.
+The layout of the chromosome can be seen in Figure~\ref{Fig:Bits}.
+
+\begin{figure}[H]
+    \centerline{\includegraphics[width=0.75\textwidth]{bit-diagram.png}}
+    \caption{The layout of the 280 bit chromosome, each field labeled with its corresponding room value and indices of which bits the field occupies.}\label{Fig:Bits}
+\end{figure}
+
+\pagebreak
+\section{Genetic Algorithm parameters}
+
+For this assignment, I used a simple genetic algorithm (SGA).
+The crossover operator was single-point crossover, and the mutation operator was bit flipping.
+Parameter values in \textbf{bold} indicate a parameter that changed from the baseline (a.k.a. attempt 1).
+
+There are a few general things I can say about my results.
+While I didn't properly measure the speed of the algorithm,
+it ran fast enough that each attempt took no longer than a minute of real time.
+Time complexity for each trial of the SGA is on the order of $O(GP)$,
+where $G$ is the number of generations, and $P$ is the population size.
+
+In terms of solution reliability and quality,
+none of my attempts were able to find the theoretical optimal solution (100 fitness),
+but all attempts (except attempt 6) were consistently able to find individuals with over 80 fitness before generation 50.
+
+\subsection{Attempt 1}
+\begin{center}
+\begin{tabular}{p{0.28\textwidth} l}
+    \toprule
+    \textbf{Parameter}      & \textbf{Value}    \\ \midrule
+    Number of Generations   & 50                \\
+    Population Size         & 100               \\
+    Crossover Probability   & 0.7               \\
+    Mutation Probability    & 0.001             \\
+    Chromosome length       & 280               \\ \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{figure}[H]
+    \centerline{\includegraphics[width=0.75\textwidth]{attempt-1/data/fitness-average.png}}
+    \caption{Minimum, maximum, and average fitness values for attempt 1.}\label{Fig:Attempt1Fitness}
+\end{figure}
+
+I started with these values because they were the suggested values for Assignment 2's SGA
+and I needed some sort of baseline to start with.
+Fitness appears to improve over each generation, reaching peaks of minimum, maximum, and average fitness by around generation 50.
+In terms of reliability and quality, the genetic algorithm very quickly finds an individual with over 80 fitness,
+but average fitness never exceeds 80.
+The minimum fitness consistently remains low as well, meaning that our generated solutions widely range in quality,
+which I interpret as a very unreliable set of solutions.
+
+\subsection{Attempt 2}
+\begin{center}
+\begin{tabular}{p{0.28\textwidth} l}
+    \toprule
+    \textbf{Parameter}      & \textbf{Value}    \\ \midrule
+    Number of Generations   & \textbf{250}      \\
+    Population Size         & 100               \\
+    Crossover Probability   & 0.7               \\
+    Mutation Probability    & 0.001             \\
+    Chromosome length       & 280               \\ \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{figure}[H]
+    \centerline{\includegraphics[width=0.75\textwidth]{attempt-2/data/fitness-average.png}}
+    \caption{Minimum, maximum, and average fitness values for attempt 2.}\label{Fig:Attempt2Fitness}
+\end{figure}
+
+This time, I adjusted the number of generations to be at least $2 \times$ the population size,
+as per the rule of thumb we learned in class.
+Unfortunately, this doesn't do very much to the results.
+In fact, it appears that the maximum fitness begins to slightly drop off between generations 25 and 50.
+However, average fitness climbs slightly higher after generation 50 and appears to plateau near generation 100.
+This gives potential solutions with marginally better quality than attempt 1,
+but we must still keep in mind the low minimum fitness.
+Once again, our algorithm is unreliable.
+
+I think the slightly higher average fitness compared to attempt 1 can be attributed to the increase in number of generations.
+This makes sense --- we are giving the algorithm more time to explore new solutions,
+and we have a bias toward keeping fitter solutions.
+However, the drop-off in maximum fitness is less ideal.
+I think this has something to do with the high crossover probability.
+Since we are encoding multiple values in a single chromosome,
+single point crossover can be quite destructive, yielding solutions that are significantly less fit than the parents.
+(If we split the chromosome in the middle of a 10 bit float, the value of that float will vary greatly in the children.)
+
+\subsection{Attempt 3}
+\begin{center}
+\begin{tabular}{p{0.28\textwidth} l}
+    \toprule
+    \textbf{Parameter}      & \textbf{Value}    \\ \midrule
+    Number of Generations   & \textbf{500}      \\
+    Population Size         & 100               \\
+    Crossover Probability   & 0.7               \\
+    Mutation Probability    & 0.001             \\ 
+    Chromosome length       & 280               \\ \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{figure}[H]
+    \centerline{\includegraphics[width=0.75\textwidth]{attempt-3/data/fitness-average.png}}
+    \caption{Minimum, maximum, and average fitness values for attempt 3.}\label{Fig:Attempt3Fitness}
+\end{figure}
+
+I wanted to see how a progressively higher number of generations would affect fitness in the long term,
+hence the increase to 500 generations.
+This also does not do very much to solution reliability and quality.
+We see very similar results to that of attempt 2.
+However, there is an ever more significant drop-off in maximum fitness near generation 100.
+Most of what I said about attempt 2 applies here as well.
+It seems that progressively increasing the time spent iterating a population is not a very good solution to solving this problem.
+
+\subsection{Attempt 4}
+\begin{center}
+\begin{tabular}{p{0.28\textwidth} l}
+    \toprule
+    \textbf{Parameter}      & \textbf{Value}    \\ \midrule
+    Number of Generations   & \textbf{750}      \\
+    Population Size         & \textbf{300}      \\
+    Crossover Probability   & 0.7               \\
+    Mutation Probability    & 0.001             \\ 
+    Chromosome length       & 280               \\ \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{figure}[H]
+    \centerline{\includegraphics[width=0.75\textwidth]{attempt-4/data/fitness-average.png}}
+    \caption{Minimum, maximum, and average fitness values for attempt 4.}\label{Fig:Attempt4Fitness}
+\end{figure}
+
+Increasing the number of generations was going nowhere,
+so I decided to see what would happen if I increased the population size to 300
+(and used an appropriate number of generations as well).
+
+This set of parameters yields the best results yet.
+There is a very similar pattern in fitness as described in attempts 2 and 3.
+The key difference here is that the average and maximum fitness for each generation
+(starting somewhere between generation 50 and 100) is significantly higher than those attempts.
+Average fitness appears to float around 80, and maximum fitness floats around 90.
+This attempt actually yielded the best individual across all trials, with a fitness of $94.88$.
+While peak solution quality seems to have increased, the overall reliability of the algorithm is still not all that great.
+The minimum fitness values have stayed in the same range (roughly 40) as the previous two attempts,
+meaning that we can still generate a really bad solution in the population.
+
+But this should be good news, right?
+Unfortunately, I don't think so.
+I think the explanation for the better results here has more to do with the way I initialize my population,
+as opposed to the genetic algorithm iterating on the population.
+Since I 1) ensure that all of my individuals are initialized to valid values,
+and 2) have generated 3 times as many valid individuals than before,
+I think the higher maximum and average fitness is due to luck.
+I think I just managed to generate better initial solutions because I simply generated more solutions.
+This is mostly evident in the maximum fitness pattern.
+It looks like a constant was added to that line, as opposed to the algorithm finding higher maxima organically.
+
+
+\subsection{Attempt 5}
+\begin{center}
+\begin{tabular}{p{0.28\textwidth} l}
+    \toprule
+    \textbf{Parameter}      & \textbf{Value}    \\ \midrule
+    Number of Generations   & \textbf{250}      \\
+    Population Size         & 100               \\
+    Crossover Probability   & \textbf{0.3}      \\
+    Mutation Probability    & 0.001             \\ 
+    Chromosome length       & 280               \\ \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{figure}[H]
+    \centerline{\includegraphics[width=0.75\textwidth]{attempt-5/data/fitness-average.png}}
+    \caption{Minimum, maximum, and average fitness values for attempt 5.}\label{Fig:Attempt5Fitness}
+\end{figure}
+
+I had the thought that perhaps the chromosome layout was too vulnerable to radical changes from crossover,
+and wanted to see what would happen if I made crossover far less likely.
+This gives very very similar results to attempts 2 and 3, which I have talked about at length.
+It seems that contrary to my initial thoughts, the crossover operator is not that destructive.
+In retrospect, this makes sense considering my chromosome layout.
+I have two vestigial values in my chromosome that are not used for anything,
+meaning that any changes that occur to those values does nothing to the individual at all.
+Furthermore, it takes up half of the chromosome, meaning there is a lot of room for nothing to happen.
+I think that this also serves as additional support for my theory (see attempt 4) that my genetic algorithm
+is good at making lucky initial guesses.
+
+\subsection{Attempt 6}
+\begin{center}
+\begin{tabular}{p{0.28\textwidth} l}
+    \toprule
+    \textbf{Parameter}      & \textbf{Value}    \\ \midrule
+    Number of Generations   & \textbf{250}      \\
+    Population Size         & 100               \\
+    Crossover Probability   & 0.7               \\
+    Mutation Probability    & \textbf{0.1}      \\ 
+    Chromosome length       & 280               \\ \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{figure}[H]
+    \centerline{\includegraphics[width=0.75\textwidth]{attempt-6/data/fitness-average.png}}
+    \caption{Minimum, maximum, and average fitness values for attempt 6.}\label{Fig:Attempt6Fitness}
+\end{figure}
+
+Finally, I wanted to see what would happen if I massively increased the mutation probability.
+After all, crossover doesn't seem to be doing very much to my chromosomes.
+This was a mistake, plain and simple.
+Minimum, maximum, and average fitness plummet to a little less than 30 in a matter of a few generations.
+The quality of solutions here are very poor, but at least this set of parameters is \textit{reliably} giving us poor results.
+Additionally, this seems to give even more merit to my ``initial lucky guess'' theory,
+as fitness never reaches the same level as the initial generation.
+
+\section{Final Results}
+
+I decided that the best set of results were generated from attempt 4.
+The fittest individual that was found across all trials and generations for this attempt
+had a fitness of $94.88$ (objective value $663.87$).
+As stated in my summary of attempt 4, this set of parameters yields solutions of very high peak quality,
+but the overall populations are not reliably high quality.
+
+\begin{center}
+\begin{tabular}{p{0.28\textwidth} l}
+    \toprule
+    \textbf{Parameter}      & \textbf{Value}    \\ \midrule
+    Number of Generations   & 750               \\
+    Population Size         & 300               \\
+    Crossover Probability   & 0.7               \\
+    Mutation Probability    & 0.001             \\ 
+    Chromosome length       & 280               \\ \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{figure}[H]
+    \centerline{\includegraphics[width=0.75\textwidth]{attempt-4/data/fitness-average.png}}
+    \caption{Minimum, maximum, and average fitness values for attempt 4.}\label{Fig:FinalFitness}
+\end{figure}
+
+\begin{figure}[H]
+    \centerline{\includegraphics[width=0.75\textwidth]{attempt-4/data/objective-average.png}}
+    \caption{Minimum, maximum, and average objective function values for attempt 4.}\label{Fig:FinalObjective}
+\end{figure}
+
+\section{Best Phenotype}
+
+The phenotype of the fittest individual in attempt 4 is as follows:
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{l l l}
+    \toprule
+    \textbf{Room Type}      & \textbf{Length}   & \textbf{Width}   \\ \midrule
+    Living                  & 9.1               & 13.6             \\
+    Kitchen                 & 6.5               & 7.7              \\
+    Bath\tablefootnote{Yes, this is an invalid room configuration. This is explained later.}
+                            & 9.5               & 26.5             \\
+    Hall                    & 5.5               & 3.8              \\
+    Bed1                    & 10.0              & 15.0             \\
+    Bed2                    & 9.0               & 13.5             \\
+    Bed3                    & 8.2               & 12.3             \\ \bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{figure}[H]
+    \centerline{\includegraphics[width=0.75\textwidth]{attempt-4/data/best-overall.png}}
+    \caption{Visualization of the phenotype for the most fit individual of attempt 4.}\label{Fig:FinalPhenotype}
+\end{figure}
+
+Figure~\ref{Fig:FinalPhenotype} warrants some explanation.
+The horizontal axis is length, and the vertical axis is width.
+The rooms with solid, bright colors are valid,
+and the rooms with checkered gray colors are invalid.
+The white squares have side lengths of 20.0 units (as a visual aid).
+Left-to-right, the top row is Living, Kitchen, Bath, Hall,
+and the bottom row is Bed1, Bed2, and Bed3.
+
+Note how the Bath extends far beyond its bounds.
+This is due to an oversight in how I calculate room cost in my implementation.
+Since the Bath has a constant area,
+punishing invalid states by using the Bath's maximum area as the objective function value doesn't work.
+Hence, all bathrooms have the same cost.
+
+%\section{Other Interesting Phenotypes}
+%nothing in particular
+
+\end{document}
